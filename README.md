@@ -10,13 +10,10 @@ This project is a Spring Data inspired annotation mechanism for entities and our
 
 We don't have traditional releases.  This project evolves directly to our git repository in an agile manner.
 
-This git repository contains only the source code for a compile time use case. It is meant to be used as a git submodule in a NodeJS or webpack project.
+This git repository contains only the source code for compile time use case. It is meant to be used as a git submodule 
+in a NodeJS or webpack project.
 
-See [sendanor/typescript-package](https://github.com/sendanor/typescript-package) for a full package example. Although, keep in mind, this repository is not intended to be used as a NPM package dependency.
-
-### We can make stable releases for a commercial customer
-
-#### We can make stable releases for a commercial customer
+### Stable releases for a commercial customer
 
 One stable release is 8000 € + taxes.
 
