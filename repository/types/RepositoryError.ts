@@ -1,6 +1,6 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import {ReadonlyJsonObject} from "../../../ts/Json";
+import {ReadonlyJsonObject} from "../../../core/Json";
 
 import RepositoryErrorCode, {stringifyRepositoryErrorCode} from "./RepositoryErrorCode";
 

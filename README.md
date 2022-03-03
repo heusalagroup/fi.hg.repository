@@ -1,4 +1,4 @@
-# @sendanor/repository
+# @heusalagroup/fi.hg.repository
 
 This project is a Spring Data inspired annotation mechanism for entities and our `CrudRepository` implementation.
 
@@ -39,18 +39,18 @@ support for that release branch.
 
 Run the installation commands from your project's root directory. Usually it's where your `package.json` is located.
 
-For these sample commands we expect your source files to be located in `./src` and we'll use `./src/nor/NAME` for location for our sub modules.
+For these sample commands we expect your source files to be located in `./src` and we'll use `./src/fi/hg/NAME` for location for our sub modules.
 
 Setup git submodules:
 
 ```shell
-mkdir -p src/nor
+mkdir -p src/fi/hg
 
-git submodule add git@github.com:sendanor/typescript.git src/nor/ts
-git config -f .gitmodules submodule.src/nor/ts.branch main
+git submodule add git@github.com:heusalagroup/fi.hg.core.git src/fi/hg/core
+git config -f .gitmodules submodule.src/fi/hg/core.branch main
 
-git submodule add git@github.com:sendanor/repository.git src/nor/repository
-git config -f .gitmodules submodule.src/nor/repository.branch main
+git submodule add git@github.com:heusalagroup/fi.hg.repository.git src/fi/hg/repository
+git config -f .gitmodules submodule.src/fi/hg/repository.branch main
 
 ```
 
@@ -79,7 +79,7 @@ npm install --save mysql @types/mysql
 First define a class for your entity -- we'll create `User` class:
 
 ```typescript
-import { Table, Entity, Id, Column } from "./nor/repository/Entity";
+import { Table, Entity, Id, Column } from "./fi/hg/repository/Entity";
 
 @Table("users")
 export class User extends Entity {
@@ -107,8 +107,8 @@ Then create a repository interface for your entities:
 
 ```typescript
 import {User} from "./model/User";
-import CrudRepository from "./nor/repository/CrudRepository";
-import Persister from "./nor/repository/Persister";
+import CrudRepository from "./fi/hg/repository/CrudRepository";
+import Persister from "./fi/hg/repository/Persister";
 
 export interface UserRepository extends CrudRepository<User, string> {
 
@@ -167,8 +167,8 @@ export class UserController {
 Finally, put everything together in your main runtime file:
 
 ```typescript
-import PgPersister from "./nor/repository/persisters/pg/PgPersister";
-import {createCrudRepositoryWithPersister} from "./nor/ts/Repository";
+import PgPersister from "./fi/hg/repository/persisters/pg/PgPersister";
+import {createCrudRepositoryWithPersister} from "./fi/hg/ts/Repository";
 import {User} from "./model/User";
 import {UserRepository} from "./UserRepository";
 

@@ -2,7 +2,7 @@
 
 import "reflect-metadata";
 
-import {isString} from "../../ts/modules/lodash";
+import {isString} from "../../core/modules/lodash";
 
 import EntityMetadata from "./types/EntityMetadata";
 

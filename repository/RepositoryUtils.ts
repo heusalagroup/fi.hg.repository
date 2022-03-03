@@ -1,6 +1,6 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import {forEach, has} from "../../ts/modules/lodash";
+import {forEach, has} from "../../core/modules/lodash";
 
 import EntityMetadata, {EntityField} from "./types/EntityMetadata";
 import CrudRepository from "./CrudRepository";

@@ -3,7 +3,7 @@
 // @ts-ignore
 import mysql, {FieldInfo, MysqlError} from "mysql";
 
-import {isArray, map, reduce} from "../../../../ts/modules/lodash";
+import {isArray, map, reduce} from "../../../../core/modules/lodash";
 
 import EntityMetadata, {EntityField} from "../../types/EntityMetadata";
 import Persister from "../../Persister";

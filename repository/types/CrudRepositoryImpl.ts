@@ -1,6 +1,6 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import {map, reduce} from "../../../ts/modules/lodash";
+import {map, reduce} from "../../../core/modules/lodash";
 
 import {Entity, EntityIdTypes} from "../Entity";
 import Persister from "../Persister";
