@@ -168,7 +168,7 @@ Finally, put everything together in your main runtime file:
 
 ```typescript
 import PgPersister from "./fi/hg/repository/persisters/pg/PgPersister";
-import {createCrudRepositoryWithPersister} from "./fi/hg/ts/Repository";
+import {createCrudRepositoryWithPersister} from "./fi/hg/core/Repository";
 import {User} from "./model/User";
 import {UserRepository} from "./UserRepository";
 
