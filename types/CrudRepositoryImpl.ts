@@ -1,14 +1,12 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import {map, reduce} from "../../../core/modules/lodash";
-
-import {Entity, EntityIdTypes} from "../Entity";
-import Persister from "../Persister";
-import EntityUtils from "../EntityUtils";
-
-import EntityMetadata, {KeyValuePairs} from "./EntityMetadata";
-import RepositoryEntityError from "./RepositoryEntityError";
-import CrudRepository from "../CrudRepository";
+import { map, reduce } from "../../core/modules/lodash";
+import { Entity, EntityIdTypes } from "../Entity";
+import { Persister } from "../Persister";
+import { EntityUtils } from "../EntityUtils";
+import { EntityMetadata, KeyValuePairs } from "./EntityMetadata";
+import { RepositoryEntityError } from "./RepositoryEntityError";
+import { CrudRepository } from "../CrudRepository";
 
 export class CrudRepositoryImpl<T extends Entity, ID extends EntityIdTypes>
     implements CrudRepository<T, ID>
@@ -148,5 +146,3 @@ export class CrudRepositoryImpl<T extends Entity, ID extends EntityIdTypes>
     }
 
 }
-
-export default CrudRepositoryImpl;

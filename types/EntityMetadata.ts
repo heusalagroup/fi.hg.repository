@@ -38,5 +38,3 @@ export interface EntityMetadata {
 export interface KeyValuePairs {
     [key: string]: any;
 }
-
-export default EntityMetadata;

@@ -1,8 +1,8 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import Entity, {EntityIdTypes} from "./Entity";
-import EntityMetadata, {EntityField, KeyValuePairs} from "./types/EntityMetadata";
-import RepositoryError from "./types/RepositoryError";
+import { Entity, EntityIdTypes } from "./Entity";
+import { EntityMetadata, EntityField, KeyValuePairs } from "./types/EntityMetadata";
+import { RepositoryError } from "./types/RepositoryError";
 
 export class EntityUtils {
 
@@ -77,5 +77,3 @@ export class EntityUtils {
     }
 
 }
-
-export default EntityUtils;

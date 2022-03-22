@@ -13,13 +13,6 @@ We don't have traditional releases.  This project evolves directly to our git re
 This git repository contains only the source code for compile time use case. It is meant to be used as a git submodule 
 in a NodeJS or webpack project.
 
-### Stable releases for a commercial customer
-
-One stable release is 8000 € + taxes.
-
-The payment includes a month of agile development with the customer, and a year of
-support for that release branch.
-
 ## Index
 
  * [Install & maintain our library](#install--maintain-our-library)
@@ -57,7 +50,9 @@ git config -f .gitmodules submodule.src/fi/hg/repository.branch main
 Next install our required dependencies (newest [lodash library](https://lodash.com/) and [reflect-metadata library](https://www.npmjs.com/package/reflect-metadata)):
 
 ```shell
-npm install --save-dev lodash @types/lodash reflect-metadata @types/node
+npm install --save-dev lodash @types/lodash 
+npm install --save-dev reflect-metadata
+npm install --save-dev @types/node
 ```
 
 You will also need to install `pg` module for `PgPersister`:
