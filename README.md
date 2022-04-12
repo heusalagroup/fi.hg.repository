@@ -2,8 +2,6 @@
 
 This project is a Spring Data inspired annotation mechanism for entities and our `CrudRepository` implementation.
 
-### It's MIT licenced
-
 ### It doesn't have many runtime dependencies
 
 ### We don't have traditional releases
@@ -13,12 +11,9 @@ We don't have traditional releases.  This project evolves directly to our git re
 This git repository contains only the source code for compile time use case. It is meant to be used as a git submodule 
 in a NodeJS or webpack project.
 
-### Stable releases for a commercial customer
+### License
 
-One stable release is 8000 € + taxes.
-
-The payment includes a month of agile development with the customer, and a year of
-support for that release branch.
+Copyright (c) Heusala Group. All rights reserved. Licensed under the MIT License (the "[License](./LICENSE)");
 
 ## Index
 
