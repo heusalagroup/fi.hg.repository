@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import EntityMetadata from "./types/EntityMetadata";
-import Entity, {EntityIdTypes} from "./Entity";
+import { EntityMetadata } from "./types/EntityMetadata";
+import { Entity, EntityIdTypes } from "./Entity";
 
 export interface Persister {
 
@@ -98,5 +98,3 @@ export interface Persister {
     ): Promise<T>;
 
 }
-
-export default Persister;

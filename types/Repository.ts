@@ -1,8 +1,8 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import {Entity, EntityIdTypes} from "../Entity";
-import Persister from "../Persister";
-import EntityMetadata from "./EntityMetadata";
+import { Entity, EntityIdTypes } from "../Entity";
+import { Persister } from "../Persister";
+import { EntityMetadata } from "./EntityMetadata";
 
 export interface StaticRepository <T extends Entity, ID extends EntityIdTypes> {
 
@@ -64,5 +64,3 @@ export function createRepository<T extends Entity, ID extends EntityIdTypes> (
 ) : Repository<T, ID> {
     return new ctor(entityMetadata, persister)
 }
-
-export default Repository;

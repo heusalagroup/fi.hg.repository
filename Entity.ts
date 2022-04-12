@@ -1,10 +1,9 @@
+// Copyright (c) 2022. Heusala Group Oy. All rights reserved.
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
 import "reflect-metadata";
-
-import {isString} from "../../core/modules/lodash";
-
-import EntityMetadata from "./types/EntityMetadata";
+import { isString } from "../core/modules/lodash";
+import { EntityMetadata } from "./types/EntityMetadata";
 
 const metadataKey = Symbol("metadata");
 
@@ -64,5 +63,3 @@ export class Entity {
  * Base type for all supported ID types
  */
 export type EntityIdTypes = string | number;
-
-export default Entity;

@@ -1,8 +1,9 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import Entity, {EntityIdTypes} from "./Entity";
-import EntityMetadata, {EntityField, KeyValuePairs} from "./types/EntityMetadata";
-import RepositoryError from "./types/RepositoryError";
+import { Entity, EntityIdTypes } from "./Entity";
+import { EntityMetadata, EntityField, KeyValuePairs } from "./types/EntityMetadata";
+import { RepositoryError } from "./types/RepositoryError";
+import { isString, trim } from "../core/modules/lodash";
 
 export class EntityUtils {
 
@@ -76,6 +77,26 @@ export class EntityUtils {
         return field.propertyName === metadata.idPropertyName;
     }
 
-}
+    public static parseStringArray (
+        input: string | undefined,
+        separator: string
+    ) : string[] {
+        return (input ?? '').split(separator).map(trim).filter((item: string) => !!item);
+    }
 
-export default EntityUtils;
+    public static parseBoolean (input : any) : boolean {
+        return input === true || input === 1;
+    }
+
+    public static parseIntegerAsString (input : string | number | undefined) : string | undefined {
+        if ( (isString(input) && trim(input)) === '' || input === undefined ) return undefined;
+        return `${input}`;
+    }
+
+    public static parseDateAsString (input : Date | string | undefined) : string | undefined {
+        if ( (isString(input) && trim(input)) === '' || input === undefined ) return undefined;
+        return `${input}`;
+    }
+
+
+}

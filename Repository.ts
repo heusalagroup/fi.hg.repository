@@ -1,11 +1,11 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import Persister from "./repository/Persister";
-import Repository from "./repository/types/Repository";
-import CrudRepositoryImpl from "./repository/types/CrudRepositoryImpl";
-import Entity, {EntityIdTypes} from "./repository/Entity";
-import RepositoryUtils from "./repository/RepositoryUtils";
-import EntityMetadata from "./repository/types/EntityMetadata";
+import { Persister } from "./Persister";
+import { Repository } from "./types/Repository";
+import { CrudRepositoryImpl } from "./types/CrudRepositoryImpl";
+import { Entity, EntityIdTypes } from "./Entity";
+import { RepositoryUtils } from "./RepositoryUtils";
+import { EntityMetadata } from "./types/EntityMetadata";
 
 export function createCrudRepositoryWithPersister<
     T extends Entity,
@@ -39,5 +39,3 @@ export function createCrudRepositoryWithPersister<
     return newImpl as RepositoryType;
 
 }
-
-export default Repository;

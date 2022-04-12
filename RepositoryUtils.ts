@@ -1,10 +1,9 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import {forEach, has} from "../../core/modules/lodash";
-
-import EntityMetadata, {EntityField} from "./types/EntityMetadata";
-import CrudRepository from "./CrudRepository";
-import Entity, {EntityIdTypes} from "./Entity";
+import {forEach, has} from "../core/modules/lodash";
+import { EntityMetadata, EntityField } from "./types/EntityMetadata";
+import { CrudRepository } from "./CrudRepository";
+import { Entity, EntityIdTypes } from "./Entity";
 
 export class RepositoryUtils {
 
@@ -205,5 +204,3 @@ export class RepositoryUtils {
     }
 
 }
-
-export default RepositoryUtils;

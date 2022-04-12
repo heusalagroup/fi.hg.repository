@@ -52,7 +52,9 @@ git config -f .gitmodules submodule.src/fi/hg/repository.branch main
 Next install our required dependencies (newest [lodash library](https://lodash.com/) and [reflect-metadata library](https://www.npmjs.com/package/reflect-metadata)):
 
 ```shell
-npm install --save-dev lodash @types/lodash reflect-metadata @types/node
+npm install --save-dev lodash @types/lodash 
+npm install --save-dev reflect-metadata
+npm install --save-dev @types/node
 ```
 
 You will also need to install `pg` module for `PgPersister`:

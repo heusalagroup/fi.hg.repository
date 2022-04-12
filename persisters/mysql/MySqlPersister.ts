@@ -1,15 +1,12 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-// @ts-ignore
-import mysql, {FieldInfo, MysqlError} from "mysql";
-
-import {isArray, map, reduce} from "../../../../core/modules/lodash";
-
-import EntityMetadata, {EntityField} from "../../types/EntityMetadata";
-import Persister from "../../Persister";
-import RepositoryError from "../../types/RepositoryError";
-import RepositoryEntityError from "../../types/RepositoryEntityError";
-import Entity, {EntityIdTypes} from "../../Entity";
+import { createPool, Pool, FieldInfo, MysqlError } from "mysql";
+import { isArray, map, reduce } from "../../../core/modules/lodash";
+import { EntityMetadata, EntityField} from "../../types/EntityMetadata";
+import { Persister } from "../../Persister";
+import { RepositoryError } from "../../types/RepositoryError";
+import { RepositoryEntityError } from "../../types/RepositoryEntityError";
+import { Entity, EntityIdTypes } from "../../Entity";
 import {
     COUNT_ALL_QUERY_STRING,
     COUNT_BY_COLUMN_QUERY_STRING,
@@ -24,14 +21,13 @@ import {
     SELECT_BY_COLUMN_QUERY_STRING,
     UPDATE_QUERY_STRING
 } from "./MySqlConstants";
-import EntityUtils from "../../EntityUtils";
+import { EntityUtils } from "../../EntityUtils";
 
 export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 
-export class MySqlPersister
-    implements Persister {
+export class MySqlPersister implements Persister {
 
-    private readonly _pool        : mysql.Pool;
+    private readonly _pool        : Pool;
     private readonly _tablePrefix : string;
 
     public constructor (
@@ -45,7 +41,7 @@ export class MySqlPersister
 
         this._tablePrefix = tablePrefix;
 
-        this._pool = mysql.createPool({
+        this._pool = createPool({
             connectionLimit,
             host,
             user,
@@ -365,5 +361,3 @@ export class MySqlPersister
     }
 
 }
-
-export default MySqlPersister;
