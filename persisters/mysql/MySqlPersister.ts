@@ -38,9 +38,9 @@ export class MySqlPersister implements Persister {
      * @param database
      * @param tablePrefix
      * @param connectionLimit
-     * @param connectionTimeout
-     * @param acquireTimeout Seconds
      * @param queueLimit
+     * @param connectionTimeout Milliseconds?
+     * @param acquireTimeout Seconds -- or Milliseconds?
      * @param timeout Milliseconds
      * @param waitForConnections
      */
