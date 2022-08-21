@@ -40,7 +40,7 @@ export class MySqlPersister implements Persister {
      * @param tablePrefix
      * @param connectionLimit
      * @param queueLimit
-     * @param connectionTimeout Milliseconds?
+     * @param connectTimeout Milliseconds?
      * @param acquireTimeout Seconds -- or Milliseconds?
      * @param timeout Milliseconds
      * @param queryTimeout Milliseconds
@@ -55,6 +55,7 @@ export class MySqlPersister implements Persister {
         connectionLimit: number = 100,
         queueLimit: number = 0,
         acquireTimeout: number = 60*60*1000,
+        connectTimeout: number = 60*60*1000,
         timeout : number = 60*60*1000,
         queryTimeout : number | undefined = 60*60*1000,
         waitForConnections : boolean = true
@@ -64,6 +65,7 @@ export class MySqlPersister implements Persister {
         this._pool = createPool(
             {
                 connectionLimit,
+                connectTimeout,
                 host,
                 user,
                 password,
