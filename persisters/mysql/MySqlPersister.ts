@@ -30,25 +30,44 @@ export class MySqlPersister implements Persister {
     private readonly _pool        : Pool;
     private readonly _tablePrefix : string;
 
+    /**
+     *
+     * @param host
+     * @param user
+     * @param password
+     * @param database
+     * @param tablePrefix
+     * @param connectionLimit
+     * @param acquireTimeout Seconds
+     * @param queueLimit
+     * @param timeout Milliseconds
+     * @param waitForConnections 
+     */
     public constructor (
         host: string,
         user: string,
         password: string,
         database: string,
         tablePrefix: string = '',
-        connectionLimit: number = 10
+        connectionLimit: number = 10,
+        acquireTimeout: number = 60,
+        queueLimit: number = 0,
+        timeout : number = 60000,
+        waitForConnections : boolean = true
     ) {
-
         this._tablePrefix = tablePrefix;
-
-        this._pool = createPool({
-            connectionLimit,
-            host,
-            user,
-            password,
-            database
-        });
-
+        this._pool = createPool(
+            {
+                connectionLimit,
+                host,
+                user,
+                password,
+                database,
+                acquireTimeout,
+                timeout,
+                waitForConnections
+            }
+        );
     }
 
     public async insert<T extends Entity, ID extends EntityIdTypes>(entities: T | T[], metadata: EntityMetadata): Promise<T> {
@@ -346,13 +365,17 @@ export class MySqlPersister implements Persister {
 
         return await new Promise((resolve, reject) => {
             try {
-                this._pool.query(query, values, (error: MysqlError | null, results ?: any, fields?: FieldInfo[]) => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve([results, fields]);
+                this._pool.query(
+                    query,
+                    values,
+                    (error: MysqlError | null, results ?: any, fields?: FieldInfo[]) => {
+                        if (error) {
+                            reject(error);
+                        } else {
+                            resolve([results, fields]);
+                        }
                     }
-                });
+                );
             } catch (err) {
                 reject(err);
             }
