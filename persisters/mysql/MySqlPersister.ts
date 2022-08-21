@@ -29,6 +29,7 @@ export class MySqlPersister implements Persister {
 
     private readonly _pool        : Pool;
     private readonly _tablePrefix : string;
+    private readonly _queryTimeout : number | undefined;
 
     /**
      *
@@ -42,6 +43,7 @@ export class MySqlPersister implements Persister {
      * @param connectionTimeout Milliseconds?
      * @param acquireTimeout Seconds -- or Milliseconds?
      * @param timeout Milliseconds
+     * @param queryTimeout Milliseconds
      * @param waitForConnections
      */
     public constructor (
@@ -54,9 +56,11 @@ export class MySqlPersister implements Persister {
         queueLimit: number = 0,
         acquireTimeout: number = 60*60*1000,
         timeout : number = 60*60*1000,
+        queryTimeout : number | undefined = 60*60*1000,
         waitForConnections : boolean = true
     ) {
         this._tablePrefix = tablePrefix;
+        this._queryTimeout = queryTimeout;
         this._pool = createPool(
             {
                 connectionLimit,
@@ -367,8 +371,11 @@ export class MySqlPersister implements Persister {
         return await new Promise((resolve, reject) => {
             try {
                 this._pool.query(
-                    query,
-                    values,
+                    {
+                        sql: query,
+                        values: values,
+                        timeout: this._queryTimeout
+                    },
                     (error: MysqlError | null, results ?: any, fields?: FieldInfo[]) => {
                         if (error) {
                             reject(error);
