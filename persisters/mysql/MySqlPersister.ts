@@ -52,7 +52,6 @@ export class MySqlPersister implements Persister {
         tablePrefix: string = '',
         connectionLimit: number = 100,
         queueLimit: number = 0,
-        connectionTimeout: number = 60*60*1000,
         acquireTimeout: number = 60*60*1000,
         timeout : number = 60*60*1000,
         waitForConnections : boolean = true
@@ -66,7 +65,6 @@ export class MySqlPersister implements Persister {
                 password,
                 database,
                 acquireTimeout,
-                connectionTimeout,
                 timeout,
                 waitForConnections
             }
