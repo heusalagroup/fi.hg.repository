@@ -38,10 +38,11 @@ export class MySqlPersister implements Persister {
      * @param database
      * @param tablePrefix
      * @param connectionLimit
+     * @param connectionTimeout
      * @param acquireTimeout Seconds
      * @param queueLimit
      * @param timeout Milliseconds
-     * @param waitForConnections 
+     * @param waitForConnections
      */
     public constructor (
         host: string,
@@ -49,10 +50,11 @@ export class MySqlPersister implements Persister {
         password: string,
         database: string,
         tablePrefix: string = '',
-        connectionLimit: number = 10,
-        acquireTimeout: number = 60,
+        connectionLimit: number = 100,
         queueLimit: number = 0,
-        timeout : number = 60000,
+        connectionTimeout: number = 60*60*1000,
+        acquireTimeout: number = 60*60*1000,
+        timeout : number = 60*60*1000,
         waitForConnections : boolean = true
     ) {
         this._tablePrefix = tablePrefix;
@@ -64,6 +66,7 @@ export class MySqlPersister implements Persister {
                 password,
                 database,
                 acquireTimeout,
+                connectionTimeout,
                 timeout,
                 waitForConnections
             }
