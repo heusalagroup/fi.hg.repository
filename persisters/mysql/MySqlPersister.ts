@@ -1,3 +1,4 @@
+// Copyright (c) 2022. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
 import { createPool, Pool, FieldInfo, MysqlError } from "mysql";
@@ -22,6 +23,7 @@ import {
     UPDATE_QUERY_STRING
 } from "./MySqlConstants";
 import { EntityUtils } from "../../EntityUtils";
+import { MySqlCharset } from "./types/MySqlCharset";
 
 export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 
@@ -45,6 +47,7 @@ export class MySqlPersister implements Persister {
      * @param timeout Milliseconds
      * @param queryTimeout Milliseconds
      * @param waitForConnections
+     * @param charset Connection charset. Defaults to UTF8_GENERAL_CI
      */
     public constructor (
         host: string,
@@ -58,7 +61,8 @@ export class MySqlPersister implements Persister {
         connectTimeout: number = 60*60*1000,
         timeout : number = 60*60*1000,
         queryTimeout : number | undefined = 60*60*1000,
-        waitForConnections : boolean = true
+        waitForConnections : boolean = true,
+        charset : MySqlCharset | string = MySqlCharset.UTF8_GENERAL_CI
     ) {
         this._tablePrefix = tablePrefix;
         this._queryTimeout = queryTimeout;
@@ -68,6 +72,7 @@ export class MySqlPersister implements Persister {
                 connectTimeout,
                 host,
                 user,
+                charset,
                 password,
                 database,
                 acquireTimeout,
