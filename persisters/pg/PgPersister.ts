@@ -178,15 +178,14 @@ export class PgPersister implements Persister {
         // return Promise.resolve(undefined);
     }
 
-    public deleteById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<void> {
+    public async deleteById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<void> {
         const {tableName} = metadata;
         const idColumnName = this.getIdColumnName(metadata);
         const query = `DELETE
                         FROM ${tableName}
                         WHERE ${idColumnName} = $1`;
         try {
-            const result = await this.pool.query(query, [ id ]);
-            return this.toEntity<T, ID>(result.rows[0], metadata);
+            await this.pool.query(query, [ id ]);
         } catch (err) {
             return await Promise.reject(err);
         }
