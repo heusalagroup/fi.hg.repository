@@ -149,12 +149,12 @@ export class PgPersister implements Persister {
     }
 
     public count<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<number> {
-        throw new TypeError('Not implemented yet');
+        throw new TypeError('PgPersister.count: Not implemented yet');
         // return Promise.resolve(0);
     }
 
     public countByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<number> {
-        throw new TypeError('Not implemented yet');
+        throw new TypeError('PgPersister.countByProperty: Not implemented yet');
         // return Promise.resolve(0);
     }
 
@@ -169,27 +169,36 @@ export class PgPersister implements Persister {
     }
 
     public deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: ID[], metadata: EntityMetadata): Promise<void> {
-        throw new TypeError('Not implemented yet');
+        throw new TypeError('PgPersister.deleteAllById: Not implemented yet');
         // return Promise.resolve(undefined);
     }
 
     public deleteAllByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<void> {
-        throw new TypeError('Not implemented yet');
+        throw new TypeError('PgPersister.deleteAllByProperty: Not implemented yet');
         // return Promise.resolve(undefined);
     }
 
     public deleteById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<void> {
-        throw new TypeError('Not implemented yet');
-        // return Promise.resolve(undefined);
+        const {tableName} = metadata;
+        const idColumnName = this.getIdColumnName(metadata);
+        const query = `DELETE
+                        FROM ${tableName}
+                        WHERE ${idColumnName} = $1`;
+        try {
+            const result = await this.pool.query(query, [ id ]);
+            return this.toEntity<T, ID>(result.rows[0], metadata);
+        } catch (err) {
+            return await Promise.reject(err);
+        }
     }
 
     public existsByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<boolean> {
-        throw new TypeError('Not implemented yet');
+        throw new TypeError('PgPersister.existsByProperty: Not implemented yet');
         // return Promise.resolve(false);
     }
 
     public findByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<T | undefined> {
-        throw new TypeError('Not implemented yet');
+        throw new TypeError('PgPersister.findByProperty: Not implemented yet');
         // return Promise.resolve(undefined);
     }
 
