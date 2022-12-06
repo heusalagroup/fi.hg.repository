@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { EntityMetadata, KeyValuePairs, EntityField } from "../../types/EntityMetadata";
 import { Persister } from "../../Persister";
 import { Entity, EntityIdTypes } from "../../Entity";
+import { EntityUtils } from "../../EntityUtils";
 
 export class PgPersister implements Persister {
 
@@ -196,9 +197,22 @@ export class PgPersister implements Persister {
         // return Promise.resolve(false);
     }
 
-    public findByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<T | undefined> {
-        throw new TypeError('PgPersister.findByProperty: Not implemented yet');
-        // return Promise.resolve(undefined);
+    public async findByProperty<T extends Entity, ID extends EntityIdTypes> (
+        property: string,
+        value: any,
+        metadata: EntityMetadata
+    ): Promise<T | undefined> {
+        const {tableName} = metadata;
+        const columnName = EntityUtils.getColumnName(property, metadata.fields);
+        const select = `SELECT *
+                        FROM ${tableName}
+                        WHERE ${columnName} = $1`;
+        try {
+            const result = await this.pool.query(select, [ value ]);
+            return this.toEntity<T, ID>(result.rows[0], metadata);
+        } catch (err) {
+            return await Promise.reject(err);
+        }
     }
 
 }
