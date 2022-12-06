@@ -159,8 +159,13 @@ export class PgPersister implements Persister {
     }
 
     public deleteAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<void> {
-        throw new TypeError('Not implemented yet');
-        // return Promise.resolve(undefined);
+        const {tableName} = metadata;
+        const sql = `DELETE FROM ${tableName}`;
+        try {
+            return this.pool.query(sql, []).then();
+        } catch (err) {
+            return Promise.reject(err);
+        }
     }
 
     public deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: ID[], metadata: EntityMetadata): Promise<void> {
