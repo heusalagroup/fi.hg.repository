@@ -243,15 +243,10 @@ export class MySqlPersister implements Persister {
         value    : any,
         metadata : EntityMetadata
     ): Promise<T | undefined> {
-
         const {tableName} = metadata;
-
         const columnName = EntityUtils.getColumnName(property, metadata.fields);
-
         const [results] = await this._query(SELECT_BY_COLUMN_QUERY_STRING, [`${this._tablePrefix}${tableName}`, columnName, value]);
-
         return results.length >= 1 && results[0] ? EntityUtils.toEntity<T, ID>(results[0], metadata) : undefined;
-
     }
 
 
