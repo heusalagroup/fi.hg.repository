@@ -1,6 +1,7 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
-import {forEach, has} from "../core/modules/lodash";
+import {forEach} from "../core/functions/forEach";
+import { has} from "../core/functions/has";
 import { EntityMetadata, EntityField } from "./types/EntityMetadata";
 import { CrudRepository } from "./CrudRepository";
 import { Entity, EntityIdTypes } from "./Entity";

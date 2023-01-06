@@ -2,7 +2,8 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
 import { createPool, Pool, FieldInfo, MysqlError } from "mysql";
-import { isArray, map, reduce } from "../../../core/modules/lodash";
+import { map } from "../../../core/functions/map";
+import { reduce } from "../../../core/functions/reduce";
 import { EntityMetadata, EntityField} from "../../types/EntityMetadata";
 import { Persister } from "../../Persister";
 import { RepositoryError } from "../../types/RepositoryError";
@@ -24,6 +25,7 @@ import {
 } from "./MySqlConstants";
 import { EntityUtils } from "../../EntityUtils";
 import { MySqlCharset } from "./types/MySqlCharset";
+import { isArray } from "../../../core/types/Array";
 
 export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 

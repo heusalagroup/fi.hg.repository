@@ -1,6 +1,6 @@
 // Copyright (c) 2022. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import { padStart } from "../../core/modules/lodash";
+import { padStart } from "../../core/functions/padStart";
 
 export class MySqlUtils {
 

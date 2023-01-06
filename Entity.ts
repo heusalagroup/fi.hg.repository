@@ -2,8 +2,8 @@
 // Copyright (c) 2020, 2021 Sendanor. All rights reserved.
 
 import "reflect-metadata";
-import { isString } from "../core/modules/lodash";
 import { EntityMetadata } from "./types/EntityMetadata";
+import { isString } from "../core/types/String";
 
 const metadataKey = Symbol("metadata");
 

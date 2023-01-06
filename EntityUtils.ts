@@ -3,7 +3,8 @@
 import { Entity, EntityIdTypes } from "./Entity";
 import { EntityMetadata, EntityField, KeyValuePairs } from "./types/EntityMetadata";
 import { RepositoryError } from "./types/RepositoryError";
-import { isString, trim } from "../core/modules/lodash";
+import { trim } from "../core/functions/trim";
+import { isString } from "../core/types/String";
 
 export class EntityUtils {
 

@@ -1,6 +1,6 @@
 // Copyright (c) 2022. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import { explainEnum } from "../../../../core/modules/lodash";
+import { explainEnum } from "../../../../core/types/Enum";
 
 export enum MySqlCharset {
     UTF8_GENERAL_CI = "UTF8_GENERAL_CI",
