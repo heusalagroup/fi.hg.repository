@@ -11,13 +11,22 @@ export class PgPersister implements Persister {
 
     private pool: Pool;
 
-    public constructor (host: string, user: string, password: string, database: string) {
-        this.pool = new Pool({
-                                 host,
-                                 user,
-                                 password,
-                                 database
-                             });
+    public constructor (
+        host: string,
+        user: string,
+        password: string,
+        database: string,
+        ssl : boolean | undefined = undefined
+    ) {
+        this.pool = new Pool(
+            {
+                host,
+                user,
+                password,
+                database,
+                ...(ssl !== undefined ? {ssl} : {})
+            }
+        );
     }
 
     public async insert<T extends Entity, ID extends EntityIdTypes> (entity: T | T[], metadata: EntityMetadata): Promise<T> {
