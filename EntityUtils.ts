@@ -89,6 +89,10 @@ export class EntityUtils {
         return input === true || input === 1;
     }
 
+    public static parseString (input : any) : string {
+        return isString(input) ? input : '';
+    }
+
     public static parseIntegerAsString (input : string | number | undefined) : string | undefined {
         if ( (isString(input) && trim(input)) === '' || input === undefined ) return undefined;
         return `${input}`;
