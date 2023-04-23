@@ -1,10 +1,12 @@
-// Copyright (c) 2020, 2021 Sendanor. All rights reserved.
+// Copyright (c) 2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
+// Copyright (c) 2020-2023 Sendanor. All rights reserved.
 
 import { Entity, EntityIdTypes } from "./Entity";
 import { EntityMetadata, EntityField, KeyValuePairs } from "./types/EntityMetadata";
 import { RepositoryError } from "./types/RepositoryError";
 import { trim } from "../core/functions/trim";
 import { isString } from "../core/types/String";
+import { MySqlDateTime } from "./MySqlDateTime";
 
 export class EntityUtils {
 
@@ -103,5 +105,9 @@ export class EntityUtils {
         return `${input}`;
     }
 
+    public static parseMySQLDateAsIsoString (value : any) : string | undefined {
+        let parsed = MySqlDateTime.parse(EntityUtils.parseDateAsString(value));
+        return parsed ? parsed.getISOString() : undefined;
+    }
 
 }
