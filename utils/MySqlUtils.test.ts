@@ -7,6 +7,7 @@ describe('MySqlUtils', () => {
     describe('#getDateTimeStringFromISOString', () => {
 
         it('can parse string dates', () => {
+            expect( MySqlUtils.getDateTimeStringFromISOString("2023-04-23T10:51:32.000Z") ).toBe('2023-04-23 10:51:32');
             expect( MySqlUtils.getDateTimeStringFromISOString("Sun Apr 23 2023 10:51:32 GMT+0000 (Coordinated Universal Time)") ).toBe('2023-04-23 10:51:32');
         });
 

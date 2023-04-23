@@ -2,7 +2,10 @@
 
 import { MySqlUtils } from "./utils/MySqlUtils";
 import { JsonAny } from "../core/Json";
-import { isIsoDateString } from "../core/types/IsoDateString";
+import { isIsoDateString, parseIsoDateString } from "../core/types/IsoDateString";
+import { isValidDate } from "../core/types/Date";
+import { isString } from "../core/types/String";
+import { isNumber } from "../core/types/Number";
 
 export class MySqlDateTime {
 
@@ -31,6 +34,11 @@ export class MySqlDateTime {
 
     public static create (time : string) : MySqlDateTime {
         return new MySqlDateTime(time);
+    }
+
+    public static parse (time : unknown) : MySqlDateTime | undefined {
+        const value = parseIsoDateString(time);
+        return value ? new MySqlDateTime(value) : undefined;
     }
 
 }
