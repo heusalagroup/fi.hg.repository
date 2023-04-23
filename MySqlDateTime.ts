@@ -1,13 +1,15 @@
-// Copyright (c) 2022. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
+// Copyright (c) 2022-2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
 import { MySqlUtils } from "./utils/MySqlUtils";
 import { JsonAny } from "../core/Json";
+import { isIsoDateString } from "../core/types/IsoDateString";
 
 export class MySqlDateTime {
 
     private readonly _time : string;
 
     public constructor (time: string) {
+        if (!isIsoDateString(time)) throw new TypeError(`Time was not valid ISO date string: '${time}'`);
         this._time = time;
     }
 

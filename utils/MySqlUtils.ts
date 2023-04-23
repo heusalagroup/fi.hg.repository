@@ -1,25 +1,42 @@
-// Copyright (c) 2022. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
+// Copyright (c) 2022-2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
 import { padStart } from "../../core/functions/padStart";
+import { isNumber } from "../../core/types/Number";
+import { isValidDate } from "../../core/types/Date";
 
 export class MySqlUtils {
 
     public static getDateTimeStringFromDate (
         time: Date
     ) : string {
-        const year    = `${time.getUTCFullYear()}`;
-        const month   = padStart(`${1 + time.getUTCMonth()}`, 2, '0');
-        const date    = padStart(`${time.getUTCDate()}`, 2, '0');
-        const hours   = padStart(`${time.getUTCHours()}`, 2, '0');
-        const minutes = padStart(`${time.getUTCMinutes()}`, 2, '0');
-        const seconds = padStart(`${time.getUTCSeconds()}`, 2, '0');
-        return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+
+        const utcFullYear = time.getUTCFullYear();
+        const utcMonth = time.getUTCMonth();
+        const utcDate = time.getUTCDate();
+        const utcHours = time.getUTCHours();
+        const utcMinutes = time.getUTCMinutes();
+        const utcSeconds = time.getUTCSeconds();
+
+        const year    = isNumber(utcFullYear) && utcFullYear >= 0 ? `${utcFullYear}` : '';
+        const month   = isNumber(utcMonth) && utcMonth >= 0 ? padStart(`${1 + utcMonth}`, 2, '0') : '';
+        const date    = isNumber(utcDate) && utcDate >= 0 ? padStart(`${utcDate}`, 2, '0') : '';
+        const hours   = isNumber(utcHours) && utcHours >= 0 ? padStart(`${utcHours}`, 2, '0') : '';
+        const minutes = isNumber(utcMinutes) && utcMinutes >= 0 ? padStart(`${utcMinutes}`, 2, '0') : '';
+        const seconds = isNumber(utcSeconds) && utcSeconds >= 0 ? padStart(`${utcSeconds}`, 2, '0') : '';
+        if (year && month && date && hours && minutes && seconds) {
+            return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+        }
+        throw new TypeError(`Could not parse date as string: '${time}'`);
     }
 
     public static getDateTimeStringFromISOString (
         isoDate: string
     ) : string {
-        return MySqlUtils.getDateTimeStringFromDate( new Date(isoDate) );
+        const date = new Date(isoDate);
+        if (!isValidDate(date)) {
+            throw new TypeError(`Could not parse string: '${isoDate}'`);
+        }
+        return MySqlUtils.getDateTimeStringFromDate( date );
     }
 
 }
