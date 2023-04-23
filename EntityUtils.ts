@@ -7,6 +7,7 @@ import { RepositoryError } from "./types/RepositoryError";
 import { trim } from "../core/functions/trim";
 import { isString } from "../core/types/String";
 import { MySqlDateTime } from "./MySqlDateTime";
+import { parseIsoDateString } from "../core/types/IsoDateString";
 
 export class EntityUtils {
 
@@ -108,6 +109,11 @@ export class EntityUtils {
     public static parseMySQLDateAsIsoString (value : any) : string | undefined {
         let parsed = MySqlDateTime.parse(EntityUtils.parseDateAsString(value));
         return parsed ? parsed.getISOString() : undefined;
+    }
+
+    public static parseIsoStringAsMySQLDateString (value : any) : string | undefined {
+        let parsed = MySqlDateTime.parse(value);
+        return parsed ? parsed.toString() : undefined;
     }
 
 }
