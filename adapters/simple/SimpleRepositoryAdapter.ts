@@ -18,12 +18,20 @@ import { RepositoryUtils } from "../../../core/simpleRepository/RepositoryUtils"
 import { SimpleEntityRepository } from "./SimpleEntityRepository";
 import { SimpleEntity } from "./SimpleEntity";
 import { createNewSimpleDTO, NewSimpleDTO } from "./NewSimpleDTO";
+import { LogService } from "../../../core/LogService";
+import { LogLevel } from "../../../core/types/LogLevel";
+
+const LOG = LogService.createLogger('SimpleRepositoryAdapter');
 
 /**
  * This is an adapter between SimpleRepository framework and the Repository
  * framework.
  */
 export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntityT extends SimpleEntity> implements SimpleBaseRepository<T> {
+
+    public static setLogLevel (level: LogLevel) {
+        LOG.setLogLevel(level);
+    }
 
     private readonly _repository : SimpleEntityRepository<SimpleEntityT>;
     private readonly _members    : readonly string[];
@@ -34,11 +42,11 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
 
     public constructor (
         repository : SimpleEntityRepository<SimpleEntityT>,
-        members    : readonly string[] = [],
-        tName      : string | undefined = undefined,
+        tCreate    : (dto: NewSimpleDTO) => SimpleEntityT,
         isT        : StoredRepositoryItemTestCallback,
-        explainT   : StoredRepositoryItemExplainCallback | undefined = undefined,
-        tCreate    : (dto: NewSimpleDTO) => SimpleEntityT
+        tName      : string | undefined,
+        explainT   : StoredRepositoryItemExplainCallback | undefined,
+        members    : readonly string[] | undefined
     ) {
         this._repository = repository;
         this._members    = members;
@@ -52,6 +60,7 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
         data: T,
         members?: readonly string[]
     ): Promise<RepositoryEntry<T>> {
+        LOG.debug(`createItem: data = `, data, 'members =', members);
         const newEntity = this._tCreate(
             createNewSimpleDTO(
                 data as unknown as ReadonlyJsonObject,
@@ -75,6 +84,7 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
         entity.entityVersion = SimpleEntity.parseNextVersion(entity);
         entity.entityDeleted = true;
         const savedEntity = await this._repository.save(entity);
+        await this._repository.deleteById(id);
         return this._createRepositoryEntryFromEntity(savedEntity);
     }
 
@@ -130,7 +140,7 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
     }
 
     public async getAll (): Promise<RepositoryEntry<T>[]> {
-        const entries = await this._repository.findAll();
+        const entries = await this._repository.findAllByEntityDeleted(false);
         return this._createRepositoryEntryArrayFromEntityArray(entries);
     }
 
@@ -141,7 +151,7 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
      * @FIXME: This is really slow and requires better implementation
      */
     public async getAllByProperty (propertyName: string, propertyValue: any): Promise<RepositoryEntry<T>[]> {
-        const items : SimpleEntity[] = await this._repository.findAll();
+        const items : SimpleEntity[] = await this._repository.findAllByEntityDeleted(false);
         const filteredEntities = filter(
             items,
             (item: SimpleEntity) : boolean => get( SimpleEntity.parseData(item), propertyName) === propertyValue
@@ -150,7 +160,7 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
     }
 
     public async getSome (idList: readonly string[]): Promise<RepositoryEntry<T>[]> {
-        if (idList.length <= 0) throw new TypeError('deleteByList: The list argument was empty');
+        if (idList.length <= 0) throw new TypeError('getSome: The list argument was empty');
         const list : SimpleEntity[] = await this._repository.findAllById(idList);
         return this._createRepositoryEntryArrayFromEntityArray(list);
     }
@@ -201,6 +211,7 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
     }
 
     public async update (id: string, data: T): Promise<RepositoryEntry<T>> {
+        LOG.debug(`update: id=`, id, 'data=', data);
         const entity : SimpleEntityT | undefined = await this._repository.findById(id);
         if (!entity) throw new TypeError(`Could not find entity by id: ${id}`);
         entity.entityVersion = SimpleEntity.parseNextVersion(entity);
@@ -210,8 +221,11 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
     }
 
     public async updateOrCreateItem (item: T): Promise<RepositoryEntry<T>> {
+        LOG.debug(`updateOrCreateItem: item = `, item);
         const id = item.id;
+        LOG.debug(`updateOrCreateItem: id = `, id);
         const foundItem : RepositoryEntry<T> | undefined = id && id !== REPOSITORY_NEW_IDENTIFIER ? await this.findById(id) : undefined;
+        LOG.debug(`updateOrCreateItem: foundItem = `, foundItem);
         if (foundItem) {
             return await this.update(foundItem.id, item);
         } else {

@@ -11,4 +11,10 @@ export interface SimpleEntityRepository<T extends SimpleEntity> extends Reposito
     existsByEntityDeleted (deleted: boolean)  : Promise<T[]>;
     countByEntityDeleted (deleted: boolean)  : Promise<T[]>;
 
+    findAllByEntityVersion (version: number)  : Promise<T[]>;
+    findByEntityVersion (version: number)  : Promise<T[]>;
+    deleteAllByEntityVersion (version: number)  : Promise<T[]>;
+    existsByEntityVersion (version: number)  : Promise<T[]>;
+    countByEntityVersion (version: number)  : Promise<T[]>;
+
 }

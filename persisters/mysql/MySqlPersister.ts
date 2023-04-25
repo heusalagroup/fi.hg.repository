@@ -27,12 +27,17 @@ import { EntityUtils } from "../../EntityUtils";
 import { MySqlCharset } from "./types/MySqlCharset";
 import { isArray } from "../../../core/types/Array";
 import { LogService } from "../../../core/LogService";
+import { LogLevel } from "../../../core/types/LogLevel";
 
 export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 
 const LOG = LogService.createLogger('MySqlPersister');
 
 export class MySqlPersister implements Persister {
+
+    public static setLogLevel (level: LogLevel) {
+        LOG.setLogLevel(level);
+    }
 
     private readonly _pool        : Pool;
     private readonly _tablePrefix : string;
@@ -119,7 +124,7 @@ export class MySqlPersister implements Persister {
         LOG.debug(`queryValues = `, queryValues);
 
         const [results] = await this._query(INSERT_QUERY_STRING, queryValues);
-        LOG.debug(`results = `, results);
+        // LOG.debug(`results = `, results);
 
         const entityId = results?.insertId;
         LOG.debug(`entityId = `, entityId);
@@ -234,7 +239,7 @@ export class MySqlPersister implements Persister {
         const queryValues = [`${this._tablePrefix}${tableName}`, idColumnName, ids];
         LOG.debug(`deleteAllById: queryValues = `, queryValues);
         const [results] = await this._query(DELETE_ALL_BY_ID_QUERY_STRING, queryValues);
-        LOG.debug(`deleteAllById: results = `, results);
+        // LOG.debug(`deleteAllById: results = `, results);
         return results.map((row: any) => EntityUtils.toEntity<T, ID>(row, metadata));
     }
 
@@ -276,7 +281,7 @@ export class MySqlPersister implements Persister {
         const idColumnName = EntityUtils.getIdColumnName(metadata);
         LOG.debug(`findById: idColumnName = `, idColumnName);
         const [results] = await this._query(SELECT_BY_COLUMN_QUERY_STRING, [`${this._tablePrefix}${tableName}`, idColumnName, id]);
-        LOG.debug(`findById: results = `, results);
+        // LOG.debug(`findById: results = `, results);
         return results.length >= 1 && results[0] ? EntityUtils.toEntity<T, ID>(results[0], metadata) : undefined;
     }
 
@@ -296,7 +301,7 @@ export class MySqlPersister implements Persister {
         const columnName = EntityUtils.getColumnName(property, metadata.fields);
         LOG.debug(`findByProperty: columnName = `, columnName);
         const [results] = await this._query(SELECT_BY_COLUMN_QUERY_STRING, [`${this._tablePrefix}${tableName}`, columnName, value]);
-        LOG.debug(`findByProperty: results = `, results);
+        // LOG.debug(`findByProperty: results = `, results);
         return results.length >= 1 && results[0] ? EntityUtils.toEntity<T, ID>(results[0], metadata) : undefined;
     }
 
@@ -309,7 +314,7 @@ export class MySqlPersister implements Persister {
         const {tableName} = metadata;
         LOG.debug(`findAll: tableName = `, tableName);
         const [results] = await this._query(SELECT_ALL_QUERY_STRING, [`${this._tablePrefix}${tableName}`]);
-        LOG.debug(`findAll: results = `, results);
+        // LOG.debug(`findAll: results = `, results);
         return results.map((row: any) => EntityUtils.toEntity<T, ID>(row, metadata));
     }
 
@@ -328,7 +333,7 @@ export class MySqlPersister implements Persister {
         const queryValues = [`${this._tablePrefix}${tableName}`, idColumnName, ids];
         LOG.debug(`findAllById: queryValues = `, queryValues);
         const [results] = await this._query(SELECT_BY_COLUMN_LIST_QUERY_STRING, queryValues);
-        LOG.debug(`findAllById: results = `, results);
+        // LOG.debug(`findAllById: results = `, results);
         return results.map((row: any) => EntityUtils.toEntity<T, ID>(row, metadata));
     }
 
@@ -348,7 +353,7 @@ export class MySqlPersister implements Persister {
         const columnName = EntityUtils.getColumnName(property, metadata.fields);
         LOG.debug(`findAllByProperty: columnName = `, columnName);
         const [results] = await this._query(SELECT_BY_COLUMN_QUERY_STRING, [`${this._tablePrefix}${tableName}`, columnName, value]);
-        LOG.debug(`findAllByProperty: results = `, results);
+        // LOG.debug(`findAllByProperty: results = `, results);
         return results.map((row: any) => EntityUtils.toEntity<T, ID>(row, metadata));
     }
 
@@ -360,7 +365,7 @@ export class MySqlPersister implements Persister {
         const {tableName} = metadata;
         LOG.debug(`count: tableName = `, tableName);
         const [results] = await this._query(COUNT_ALL_QUERY_STRING, ['count', `${this._tablePrefix}${tableName}`]);
-        LOG.debug(`count: results = `, results);
+        // LOG.debug(`count: results = `, results);
         if (results.length !== 1) {
             throw new RepositoryError(RepositoryError.Code.COUNT_INCORRECT_ROW_AMOUNT, `count: Incorrect amount of rows in the response`);
         }
@@ -382,7 +387,7 @@ export class MySqlPersister implements Persister {
             COUNT_BY_COLUMN_QUERY_STRING,
             ['count', `${this._tablePrefix}${tableName}`, property, value]
         );
-        LOG.debug(`countByProperty: results = `, results);
+        // LOG.debug(`countByProperty: results = `, results);
         if (results.length !== 1) {
             throw new RepositoryError(RepositoryError.Code.COUNT_INCORRECT_ROW_AMOUNT, `countByProperty: Incorrect amount of rows in the response`);
         }
@@ -408,7 +413,7 @@ export class MySqlPersister implements Persister {
             EXISTS_BY_COLUMN_QUERY_STRING,
             ['exists', `${this._tablePrefix}${tableName}`, columnName, value]
         );
-        LOG.debug(`existsByProperty: results = `, results);
+        // LOG.debug(`existsByProperty: results = `, results);
         if (results.length !== 1) {
             throw new RepositoryError(RepositoryError.Code.EXISTS_INCORRECT_ROW_AMOUNT, `existsById: Incorrect amount of rows in the response`);
         }
