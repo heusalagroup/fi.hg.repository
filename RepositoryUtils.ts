@@ -1,10 +1,14 @@
-// Copyright (c) 2020, 2021 Sendanor. All rights reserved.
+// Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
+// Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import {forEach} from "../core/functions/forEach";
 import { has} from "../core/functions/has";
 import { EntityMetadata, EntityField } from "./types/EntityMetadata";
 import { CrudRepository } from "./CrudRepository";
 import { Entity, EntityIdTypes } from "./Entity";
+import { LogService } from "../core/LogService";
+
+const LOG = LogService.createLogger('RepositoryUtils');
 
 export class RepositoryUtils {
 
@@ -24,12 +28,12 @@ export class RepositoryUtils {
         proto          : any,
         entityMetadata : EntityMetadata
     ) {
-
         forEach(entityMetadata.fields, (item: EntityField) => {
-
             const propertyName = item.propertyName;
+            LOG.debug(`propertyName = '${propertyName}'`)
 
             const camelCasePropertyName = RepositoryUtils._getCamelCaseName(propertyName);
+            LOG.debug(`camelCasePropertyName = '${camelCasePropertyName}'`)
 
             const findAllByMethodName = `findAllBy${camelCasePropertyName}`;
             if (!has(proto, findAllByMethodName)) {
