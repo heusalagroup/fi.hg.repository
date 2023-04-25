@@ -96,7 +96,6 @@ export class RepositoryUtils {
             }
 
         });
-
     }
 
     private static _getCamelCaseName (propertyName : string) : string {

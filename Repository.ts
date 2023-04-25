@@ -1,5 +1,5 @@
-// Copyright (c) 2022. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
-// Copyright (c) 2020, 2021 Sendanor. All rights reserved.
+// Copyright (c) 2022-2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
+// Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import { Persister } from "./Persister";
 import { Repository } from "./types/Repository";
@@ -7,6 +7,9 @@ import { CrudRepositoryImpl } from "./types/CrudRepositoryImpl";
 import { Entity, EntityIdTypes } from "./Entity";
 import { RepositoryUtils } from "./RepositoryUtils";
 import { EntityMetadata } from "./types/EntityMetadata";
+import { LogService } from "../core/LogService";
+
+const LOG = LogService.createLogger('Repository');
 
 export function createCrudRepositoryWithPersister<
     T extends Entity,
@@ -16,8 +19,8 @@ export function createCrudRepositoryWithPersister<
     emptyEntity : T,
     persister   : Persister
 ) : RepositoryType {
-
     const entityMetadata : EntityMetadata = emptyEntity.getMetadata();
+    LOG.debug(`entityMetadata = `, entityMetadata);
 
     class FinalCrudRepositoryImpl<T extends Entity, ID extends EntityIdTypes>
         extends CrudRepositoryImpl<T, ID> {
@@ -31,10 +34,6 @@ export function createCrudRepositoryWithPersister<
     }
 
     const newImpl = (new FinalCrudRepositoryImpl(persister));
-
     RepositoryUtils.generateDefaultMethods<T, ID, RepositoryType>(FinalCrudRepositoryImpl.prototype, entityMetadata);
-
-    // @ts-ignore
-    return newImpl as RepositoryType;
-
+    return newImpl as unknown as RepositoryType;
 }

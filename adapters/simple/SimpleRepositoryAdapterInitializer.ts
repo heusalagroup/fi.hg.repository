@@ -6,17 +6,22 @@ import { SimpleRepositoryAdapter } from "./SimpleRepositoryAdapter";
 import { RepositoryInitializer } from "../../../core/simpleRepository/types/RepositoryInitializer";
 import { explainNot, explainOk } from "../../../core/types/explain";
 import { SimpleEntityRepository } from "./SimpleEntityRepository";
+import { SimpleEntity } from "./SimpleEntity";
 
-export class SimpleRepositoryAdapterInitializer<T extends StoredRepositoryItem> implements RepositoryInitializer<T> {
+export class SimpleRepositoryAdapterInitializer<
+    T extends StoredRepositoryItem,
+    EntityT extends SimpleEntity
+> implements RepositoryInitializer<T> {
 
-    private readonly _repository : SimpleEntityRepository;
+    private readonly _repository : SimpleEntityRepository<EntityT>;
     private readonly _members    : readonly string[] | undefined;
     private readonly _isT        : StoredRepositoryItemTestCallback;
     private readonly _explainT   : StoredRepositoryItemExplainCallback;
     private readonly _tName      : string;
+    private readonly _tCreate    : string;
 
     public constructor (
-        repository          : SimpleEntityRepository,
+        repository          : SimpleEntityRepository<EntityT>,
         isT                 : StoredRepositoryItemTestCallback,
         tName               : string                              | undefined = undefined,
         explainT            : StoredRepositoryItemExplainCallback | undefined = undefined,

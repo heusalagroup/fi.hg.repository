@@ -1,5 +1,5 @@
-// Copyright (c) 2022. Heusala Group Oy. All rights reserved.
-// Copyright (c) 2020, 2021 Sendanor. All rights reserved.
+// Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
+// Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import "reflect-metadata";
 import { EntityMetadata } from "./types/EntityMetadata";
@@ -11,7 +11,7 @@ function updateMetadata(target: any, setValue: (metadata: EntityMetadata) => voi
 
     const metadata: EntityMetadata = Reflect.getMetadata(metadataKey, target) || {
         tableName: "",
-        idColumnName: "",
+        idPropertyName: "",
         fields: [],
     };
 

@@ -1,59 +1,24 @@
 // Copyright (c) 2020-2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
 import { LogService } from "../../../core/LogService";
-import { Column, Entity, Id } from "../../Entity";
-import { NewSimpleDTO } from "./NewSimpleDTO";
+import { Entity } from "../../Entity";
 import { EntityUtils } from "../../EntityUtils";
 import { createSimpleDTO, isSimpleDTO, SimpleDTO } from "./SimpleDTO";
 import { ReadonlyJsonObject } from "../../../core/Json";
 import { join } from "../../../core/functions/join";
-import { REPOSITORY_NEW_IDENTIFIER } from "../../../core/simpleRepository/types/Repository";
 
 const LOG = LogService.createLogger('SimpleEntity');
 
-export class SimpleEntity extends Entity {
+export abstract class SimpleEntity extends Entity {
 
-    // The constructor
-
-    public constructor ();
-    public constructor (dto : NewSimpleDTO);
-
-    public constructor (dto ?: NewSimpleDTO) {
-        super();
-        this.entityId = REPOSITORY_NEW_IDENTIFIER;
-        this.entityUpdated = undefined;
-        this.entityCreated = undefined;
-        this.entityData = dto ? JSON.stringify(dto?.data) : '{}';
-        this.entityMembers = dto ? SimpleEntity.prepareMembers(dto?.members) : '[]';
-        this.entityInvited = '[]';
-        this.entityVersion = 0;
-        this.entityDeleted = false;
-    }
-
-    @Id()
-    @Column("id")
-    public entityId?: string;
-
-    @Column("updated")
-    public entityUpdated?: string;
-
-    @Column("created")
-    public entityCreated?: string;
-
-    @Column("data")
-    public entityData?: string;
-
-    @Column("members")
-    public entityMembers?: string;
-
-    @Column("invited")
-    public entityInvited?: string;
-
-    @Column("version")
-    public entityVersion?: number;
-
-    @Column("deleted")
-    public entityDeleted?: boolean;
+    public abstract entityId?: string;
+    public abstract entityUpdated?: string;
+    public abstract entityCreated?: string;
+    public abstract entityData?: string;
+    public abstract entityMembers?: string;
+    public abstract entityInvited?: string;
+    public abstract entityVersion?: number;
+    public abstract entityDeleted?: boolean;
 
     public static parseId (entity: SimpleEntity) : string {
         return EntityUtils.parseIntegerAsString(entity.entityId) ?? '';

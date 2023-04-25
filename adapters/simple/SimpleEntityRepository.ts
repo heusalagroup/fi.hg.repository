@@ -3,6 +3,12 @@
 import { SimpleEntity } from "./SimpleEntity";
 import { Repository } from "../../types/Repository";
 
-export interface SimpleEntityRepository extends Repository<SimpleEntity, string> {
-    findAllByEntityDeleted (deleted: boolean)  : Promise<SimpleEntity[]>;
+export interface SimpleEntityRepository<T extends SimpleEntity> extends Repository<T, string> {
+
+    findAllByEntityDeleted (deleted: boolean)  : Promise<T[]>;
+    findByEntityDeleted (deleted: boolean)  : Promise<T[]>;
+    deleteAllByEntityDeleted (deleted: boolean)  : Promise<T[]>;
+    existsByEntityDeleted (deleted: boolean)  : Promise<T[]>;
+    countByEntityDeleted (deleted: boolean)  : Promise<T[]>;
+
 }
