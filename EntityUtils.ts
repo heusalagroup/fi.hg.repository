@@ -7,7 +7,8 @@ import { RepositoryError } from "./types/RepositoryError";
 import { trim } from "../core/functions/trim";
 import { isString } from "../core/types/String";
 import { MySqlDateTime } from "./MySqlDateTime";
-import { parseIsoDateString } from "../core/types/IsoDateString";
+import { parseReadonlyJsonObject, ReadonlyJsonObject } from "../core/Json";
+import { isNumber } from "../core/types/Number";
 
 export class EntityUtils {
 
@@ -96,6 +97,14 @@ export class EntityUtils {
         return isString(input) ? input : '';
     }
 
+    public static parseNumber (input : any) : number | undefined {
+        return isNumber(input) ? input : undefined;
+    }
+
+    public static parseJsonObject (input : any) : ReadonlyJsonObject | undefined {
+        return parseReadonlyJsonObject(input);
+    }
+
     public static parseIntegerAsString (input : string | number | undefined) : string | undefined {
         if ( (isString(input) && trim(input)) === '' || input === undefined ) return undefined;
         return `${input}`;
@@ -107,6 +116,16 @@ export class EntityUtils {
     }
 
     public static parseMySQLDateAsIsoString (value : any) : string | undefined {
+        let parsed = MySqlDateTime.parse(EntityUtils.parseDateAsString(value));
+        return parsed ? parsed.getISOString() : undefined;
+    }
+
+    public static parseDateAsIsoString (value : any) : string | undefined {
+        let parsed = EntityUtils.parseDateAsString(value);
+        return parsed ? parsed : undefined;
+    }
+
+    public static parseJson (value : any) : string | undefined {
         let parsed = MySqlDateTime.parse(EntityUtils.parseDateAsString(value));
         return parsed ? parsed.getISOString() : undefined;
     }

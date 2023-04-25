@@ -30,7 +30,7 @@ export interface Repository<T extends Entity, ID extends EntityIdTypes> {
 
     findAll (): Promise<T[]>;
 
-    findAllById (ids: ID[]): Promise<T[]>;
+    findAllById (ids: readonly ID[]): Promise<T[]>;
 
     findById (id: ID): Promise<T | undefined>;
 
