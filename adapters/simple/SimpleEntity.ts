@@ -60,11 +60,11 @@ export class SimpleEntity extends Entity {
     }
 
     public static parseUpdated (entity: SimpleEntity) : string {
-        return EntityUtils.parseDateAsIsoString(entity.entityUpdated) ?? '';
+        return EntityUtils.parseMySQLDateAsIsoString(entity.entityUpdated) ?? '';
     }
 
     public static parseCreated (entity: SimpleEntity) : string {
-        return EntityUtils.parseDateAsIsoString(entity.entityCreated) ?? '';
+        return EntityUtils.parseMySQLDateAsIsoString(entity.entityCreated) ?? '';
     }
 
     public static parseData (entity: SimpleEntity) : ReadonlyJsonObject {
