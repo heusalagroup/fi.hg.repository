@@ -31,28 +31,28 @@ export class SimpleEntity extends Entity {
     }
 
     @Id()
-    @Column("entity_id")
+    @Column("id")
     public entityId?: string;
 
-    @Column("entity_updated")
+    @Column("updated")
     public entityUpdated?: string;
 
-    @Column("entity_creation")
+    @Column("created")
     public entityCreated?: string;
 
-    @Column("entity_data")
+    @Column("data")
     public entityData?: string;
 
-    @Column("entity_members")
+    @Column("members")
     public entityMembers?: string;
 
-    @Column("entity_invited")
+    @Column("invited")
     public entityInvited?: string;
 
-    @Column("entity_version")
+    @Column("version")
     public entityVersion?: number;
 
-    @Column("entity_deleted")
+    @Column("deleted")
     public entityDeleted?: boolean;
 
     public static parseId (entity: SimpleEntity) : string {
