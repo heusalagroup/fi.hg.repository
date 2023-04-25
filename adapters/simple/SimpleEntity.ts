@@ -1,7 +1,7 @@
 // Copyright (c) 2020-2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
 import { LogService } from "../../../core/LogService";
-import { Column, Entity, Id, Table } from "../../Entity";
+import { Column, Entity, Id } from "../../Entity";
 import { NewSimpleDTO } from "./NewSimpleDTO";
 import { EntityUtils } from "../../EntityUtils";
 import { createSimpleDTO, isSimpleDTO, SimpleDTO } from "./SimpleDTO";
@@ -11,7 +11,6 @@ import { REPOSITORY_NEW_IDENTIFIER } from "../../../core/simpleRepository/types/
 
 const LOG = LogService.createLogger('SimpleEntity');
 
-@Table("client")
 export class SimpleEntity extends Entity {
 
     // The constructor
