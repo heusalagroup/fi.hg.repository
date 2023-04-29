@@ -8,17 +8,13 @@ import { isString } from "../core/types/String";
 const metadataKey = Symbol("metadata");
 
 function updateMetadata(target: any, setValue: (metadata: EntityMetadata) => void) : void {
-
     const metadata: EntityMetadata = Reflect.getMetadata(metadataKey, target) || {
         tableName: "",
         idPropertyName: "",
         fields: [],
     };
-
     setValue(metadata);
-
     Reflect.defineMetadata(metadataKey, metadata, target);
-
 }
 
 export const Table = (tableName: string) => {
@@ -31,25 +27,19 @@ export const Table = (tableName: string) => {
 
 export const Column = (columnName: string): PropertyDecorator => {
     return (target: any, propertyName : string | symbol) => {
-
         if (!isString(propertyName)) throw new TypeError(`Only string properties supported. The type was ${typeof propertyName}.`);
-
         updateMetadata(target.constructor, (metadata: EntityMetadata) => {
             metadata.fields.push({ propertyName, columnName });
         });
-
     };
 };
 
 export const Id = (): PropertyDecorator => {
     return (target: any, propertyName : string | symbol) => {
-
         if (!isString(propertyName)) throw new TypeError(`Only string properties supported. The type was ${typeof propertyName}.`);
-
         updateMetadata(target.constructor, (metadata: EntityMetadata) => {
             metadata.idPropertyName = propertyName;
         });
-
     };
 };
 
