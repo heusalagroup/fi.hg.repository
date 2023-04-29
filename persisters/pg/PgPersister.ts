@@ -1,5 +1,5 @@
-// Copyright (c) 2022 Heusala Group. All rights reserved.
-// Copyright (c) 2020, 2021 Sendanor. All rights reserved.
+// Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
+// Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import { Pool } from "pg";
 import { EntityMetadata, KeyValuePairs, EntityField } from "../../types/EntityMetadata";
@@ -7,6 +7,9 @@ import { Persister } from "../../Persister";
 import { Entity, EntityIdTypes } from "../../Entity";
 import { EntityUtils } from "../../EntityUtils";
 
+/**
+ * This persister implements entity store over PostgreSQL database.
+ */
 export class PgPersister implements Persister {
 
     private pool: Pool;

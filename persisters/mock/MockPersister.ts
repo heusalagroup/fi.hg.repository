@@ -6,6 +6,10 @@ import { EntityMetadata } from "../../types/EntityMetadata";
 import { first } from "../../../core/functions/first";
 import { isArray } from "../../../core/types/Array";
 
+/**
+ * This persister implements every method but doesn't really do anything.
+ * It is useful for testing purposes.
+ */
 export class MockPersister implements Persister {
 
     public async count<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<number> {

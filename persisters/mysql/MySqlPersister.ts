@@ -33,6 +33,9 @@ export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 
 const LOG = LogService.createLogger('MySqlPersister');
 
+/**
+ * This persister implements entity store over MySQL database.
+ */
 export class MySqlPersister implements Persister {
 
     public static setLogLevel (level: LogLevel) {

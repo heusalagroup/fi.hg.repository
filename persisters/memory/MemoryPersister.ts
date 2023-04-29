@@ -33,6 +33,10 @@ export enum MemoryIdType {
  */
 let ID_SEQUENCER = 0;
 
+/**
+ * This persister stores everything in the process memory. It is useful for
+ * development purposes.
+ */
 export class MemoryPersister implements Persister {
 
     private readonly _idType : MemoryIdType;
