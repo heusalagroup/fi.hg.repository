@@ -49,7 +49,7 @@ export class SimpleRepositoryAdapter<T extends StoredRepositoryItem, SimpleEntit
         members    : readonly string[] | undefined
     ) {
         this._repository = repository;
-        this._members    = members;
+        this._members    = members ?? [];
         this._isT        = isT;
         this._tName      = tName ?? 'T';
         this._explainT   = explainT ?? ( (value: any) : string => isT(value) ? explainOk() : explainNot(this._tName) );
