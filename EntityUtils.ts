@@ -7,8 +7,14 @@ import { RepositoryError } from "./types/RepositoryError";
 import { trim } from "../core/functions/trim";
 import { isString } from "../core/types/String";
 import { MySqlDateTime } from "./MySqlDateTime";
-import { parseReadonlyJsonObject, ReadonlyJsonObject } from "../core/Json";
+import { isReadonlyJsonAny, parseReadonlyJsonObject, ReadonlyJsonAny, ReadonlyJsonObject } from "../core/Json";
 import { isNumber } from "../core/types/Number";
+import { reduce } from "../core/functions/reduce";
+import { LogService } from "../core/LogService";
+import { CreateEntityLikeCallback } from "./types/EntityLike";
+import { isFunction } from "../core/types/Function";
+
+const LOG = LogService.createLogger('EntityUtils');
 
 export class EntityUtils {
 
@@ -16,30 +22,62 @@ export class EntityUtils {
         propertyName : string,
         fields       : EntityField[]
     ): string {
-
         const field = fields.find((x: EntityField) => x.propertyName === propertyName);
-
         if (field) {
             return field.columnName;
         }
-
         throw new RepositoryError(RepositoryError.Code.COLUMN_NAME_NOT_FOUND, `Column name not found for property: "${propertyName}"`);
-
     }
 
     public static getPropertyName (
         columnName : string,
         fields     : EntityField[]
     ): string {
-
         const field = fields.find((x: EntityField) => x.columnName === columnName);
-
         if (field) {
             return field.propertyName;
         }
-
         throw new RepositoryError(RepositoryError.Code.PROPERTY_NAME_NOT_FOUND, `Column not found: "${columnName}"`);
+    }
 
+    public static toJSON (
+        entity: Entity,
+        metadata: EntityMetadata
+    ) : ReadonlyJsonObject {
+        return reduce(
+            metadata.fields,
+            (prev: ReadonlyJsonObject, field: EntityField) : ReadonlyJsonObject => {
+                const propertyName = field?.propertyName;
+                if (!propertyName) throw new TypeError(`The field did not have propertyName defined`);
+                const value : unknown = (entity as any)[propertyName];
+                if (value === undefined) return prev;
+                if (!isReadonlyJsonAny(value)) {
+                    LOG.warn(`Could not convert property "${propertyName}" as JSON: Value not compatible for JSON:`, value);
+                    return prev;
+                }
+                return {
+                    ...prev,
+                    [propertyName]: value
+                };
+            },
+            {} as ReadonlyJsonObject
+        );
+    }
+
+    public static clone (
+        entity: Entity,
+        metadata: EntityMetadata
+    ) : Entity {
+        const idPropertyName = metadata?.idPropertyName;
+        if (!idPropertyName) throw new TypeError(`The entity metadata did not have id property name defined`);
+        const createEntity : CreateEntityLikeCallback | undefined = metadata?.createEntity;
+        if (!isFunction(createEntity)) {
+            throw new TypeError(`The entity metadata did not have ability to create new entities. Did you forget '@table()' annotation?`);
+        }
+        const clonedEntity = createEntity( entity.toJSON() );
+        // We need to copy the ID because most entity builders do not support changing the ID
+        (clonedEntity as any)[idPropertyName] = (entity as any)[idPropertyName] as string|number;
+        return clonedEntity;
     }
 
     public static toEntity<T extends Entity, ID extends EntityIdTypes> (

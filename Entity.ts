@@ -2,8 +2,13 @@
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import "reflect-metadata";
-import { EntityMetadata } from "./types/EntityMetadata";
+import { EntityField, EntityMetadata } from "./types/EntityMetadata";
 import { isString } from "../core/types/String";
+import { CreateEntityLikeCallback, EntityLike } from "./types/EntityLike";
+import { reduce } from "../core/functions/reduce";
+import { isReadonlyJsonAny, ReadonlyJsonAny, ReadonlyJsonObject } from "../core/Json";
+import { isFunction } from "../core/types/Function";
+import { EntityUtils } from "./EntityUtils";
 
 const metadataKey = Symbol("metadata");
 
@@ -12,6 +17,7 @@ function updateMetadata(target: any, setValue: (metadata: EntityMetadata) => voi
         tableName: "",
         idPropertyName: "",
         fields: [],
+        createEntity: () => undefined
     };
     setValue(metadata);
     Reflect.defineMetadata(metadataKey, metadata, target);
@@ -19,8 +25,12 @@ function updateMetadata(target: any, setValue: (metadata: EntityMetadata) => voi
 
 export const Table = (tableName: string) => {
     return (target: any) => {
+        const TargetEntity = target;
         updateMetadata(target, (metadata: EntityMetadata) => {
             metadata.tableName = tableName;
+            metadata.createEntity = (dto?: any) => {
+                return new TargetEntity(dto);
+            };
         });
     };
 };
@@ -43,10 +53,20 @@ export const Id = (): PropertyDecorator => {
     };
 };
 
-export class Entity {
+export class Entity implements EntityLike {
+
     public getMetadata(): EntityMetadata {
         return Reflect.getMetadata(metadataKey, this.constructor);
     }
+
+    public toJSON () : ReadonlyJsonObject {
+        return EntityUtils.toJSON(this, this.getMetadata());
+    }
+
+    public clone () : Entity {
+        return EntityUtils.clone(this, this.getMetadata());
+    }
+
 }
 
 /**

@@ -7,10 +7,15 @@ import { EntityMetadata, EntityField } from "./types/EntityMetadata";
 import { CrudRepository } from "./CrudRepository";
 import { Entity, EntityIdTypes } from "./Entity";
 import { LogService } from "../core/LogService";
+import { LogLevel } from "../core/types/LogLevel";
 
 const LOG = LogService.createLogger('RepositoryUtils');
 
 export class RepositoryUtils {
+
+    public static setLogLevel (level : LogLevel) {
+        LOG.setLogLevel(level);
+    }
 
     /**
      * Generates default properties using the entity metadata.

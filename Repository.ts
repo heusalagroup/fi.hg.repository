@@ -8,8 +8,13 @@ import { Entity, EntityIdTypes } from "./Entity";
 import { RepositoryUtils } from "./RepositoryUtils";
 import { EntityMetadata } from "./types/EntityMetadata";
 import { LogService } from "../core/LogService";
+import { LogLevel } from "../core/types/LogLevel";
 
 const LOG = LogService.createLogger('Repository');
+
+export function setRepositoryLogLevel (level: LogLevel) {
+    LOG.setLogLevel(level);
+}
 
 export function createCrudRepositoryWithPersister<
     T extends Entity,
@@ -33,7 +38,7 @@ export function createCrudRepositoryWithPersister<
 
     }
 
-    const newImpl = (new FinalCrudRepositoryImpl(persister));
+    const newImpl = new FinalCrudRepositoryImpl(persister);
     RepositoryUtils.generateDefaultMethods<T, ID, RepositoryType>(FinalCrudRepositoryImpl.prototype, entityMetadata);
     return newImpl as unknown as RepositoryType;
 }
