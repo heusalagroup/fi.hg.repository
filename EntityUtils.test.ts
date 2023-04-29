@@ -24,6 +24,23 @@ describe('EntityUtils', () => {
 
     }
 
+    @Table('bars')
+    class BarEntity extends Entity {
+        constructor (dto ?: {barName: string}) {
+            super()
+            this.barId = undefined;
+            this.barName = undefined;
+        }
+
+        @Id()
+        @Column('bar_id')
+        public barId ?: string;
+
+        @Column('bar_name')
+        public barName ?: string;
+
+    }
+
     describe('#toJSON', () => {
 
         let fooMetadata : EntityMetadata;
@@ -71,6 +88,10 @@ describe('EntityUtils', () => {
         let fooEntity : FooEntity;
         let fooEntityWithId : FooEntity;
 
+        let barMetadata : EntityMetadata;
+        let barEntity : BarEntity;
+        let barEntityWithId : BarEntity;
+
         beforeEach(() => {
 
             fooEntity = new FooEntity({fooName: 'Hello world'});
@@ -86,6 +107,22 @@ describe('EntityUtils', () => {
                     createEntityField('fooName', 'foo_name')
                 ],
                 (dto?: any) => new FooEntity(dto)
+            );
+
+            barEntity = new BarEntity({barName: 'Hello world'});
+
+            barEntityWithId = new BarEntity();
+            barEntityWithId.barId = '123';
+            barEntityWithId.barName = 'Hello world';
+
+            barMetadata = createEntityMetadata(
+                'bars',
+                'barId',
+                [
+                    createEntityField('barId', 'bar_id'),
+                    createEntityField('barName', 'bar_name')
+                ],
+                (dto?: any) => new BarEntity(dto)
             );
 
         });
@@ -140,6 +177,22 @@ describe('EntityUtils', () => {
             expect( clonedEntity?.fooName ).toBe('Hello world');
             expect( fooEntityWithId?.fooId ).toBe('123');
             expect( fooEntityWithId?.fooName ).toBe('123');
+        });
+
+        it('can clone entity with properties that are not initialized in the entity constructor', () => {
+            expect( barEntityWithId?.barId ).toBe('123');
+            expect( barEntityWithId?.barName ).toBe('Hello world');
+
+            const clonedEntity : BarEntity = EntityUtils.clone(barEntityWithId, barMetadata);
+            expect( clonedEntity?.barId ).toBe('123');
+            expect( clonedEntity?.barName ).toBe('Hello world');
+            expect( barEntityWithId?.barId ).toBe('123');
+            expect( barEntityWithId?.barName ).toBe('Hello world');
+            barEntityWithId.barName = '123';
+            expect( clonedEntity?.barId ).toBe('123');
+            expect( clonedEntity?.barName ).toBe('Hello world');
+            expect( barEntityWithId?.barId ).toBe('123');
+            expect( barEntityWithId?.barName ).toBe('123');
         });
 
     });

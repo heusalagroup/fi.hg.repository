@@ -13,6 +13,14 @@ import { reduce } from "../core/functions/reduce";
 import { LogService } from "../core/LogService";
 import { CreateEntityLikeCallback } from "./types/EntityLike";
 import { isFunction } from "../core/types/Function";
+import { forEach } from "../core/functions/forEach";
+import { keys } from "../core/functions/keys";
+import { isUndefined } from "../core/types/undefined";
+import { isNull } from "../core/types/Null";
+import { isBoolean } from "../core/types/Boolean";
+import { isNumberArray } from "../core/types/NumberArray";
+import { isArray } from "../core/types/Array";
+import { map } from "../core/functions/map";
 
 const LOG = LogService.createLogger('EntityUtils');
 
@@ -74,9 +82,46 @@ export class EntityUtils {
         if (!isFunction(createEntity)) {
             throw new TypeError(`The entity metadata did not have ability to create new entities. Did you forget '@table()' annotation?`);
         }
-        const clonedEntity = createEntity( entity.toJSON() );
-        // We need to copy the ID because most entity builders do not support changing the ID
-        (clonedEntity as any)[idPropertyName] = (entity as any)[idPropertyName] as string|number;
+        const json = entity.toJSON();
+        const clonedEntity = createEntity( json );
+
+        // We need to copy all properties because entity constructor might not
+        // initialize everything same way
+        forEach(
+            keys(json),
+            (key: string) => {
+                const entityValue = (entity as any)[key];
+                if ( isString(entityValue)
+                    || isNumber(entityValue)
+                    || isBoolean(entityValue)
+                    || isUndefined(entityValue)
+                    || isNull(entityValue)
+                ) {
+                    (clonedEntity as any)[key] = entityValue;
+                } else if (isArray(entityValue)) {
+                    (clonedEntity as any)[key] = map(
+                        entityValue,
+                        (item) => {
+                            if ( isString(item)
+                                || isNumber(item)
+                                || isBoolean(item)
+                                || isUndefined(item)
+                                || isNull(item)
+                            ) {
+                                return item;
+                            } else {
+                                LOG.debug(`entityValue = `, entityValue);
+                                throw new TypeError(`Could not clone value: ${item}`);
+                            }
+                        }
+                    );
+                } else {
+                    LOG.debug(`entityValue = `, entityValue);
+                    throw new TypeError(`Could not clone value: ${entityValue}`);
+                }
+            }
+        );
+
         return clonedEntity;
     }
 
