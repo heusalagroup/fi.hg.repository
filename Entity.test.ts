@@ -8,6 +8,7 @@ describe('Entity', () => {
 
     @Table('foos')
     class FooEntity extends Entity {
+
         constructor (dto ?: {fooName: string}) {
             super()
             this.fooName = dto?.fooName;

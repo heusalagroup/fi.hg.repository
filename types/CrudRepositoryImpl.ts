@@ -117,13 +117,9 @@ export class CrudRepositoryImpl<T extends Entity, ID extends EntityIdTypes>
         await reduce(
             entities,
             async (p : Promise<void>, item : T) => {
-
                 await p;
-
                 const savedItem = await this.save(item);
-
                 results.push(savedItem);
-
             },
             Promise.resolve()
         );

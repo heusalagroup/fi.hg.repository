@@ -20,9 +20,10 @@ describe('Repository', () => {
     });
 
     describe('createCrudRepositoryWithPersister', () => {
+
         interface FooRepository extends Repository<FooEntity, string> {
 
-            findAllByName() : Promise<FooEntity[]>;
+            findAllByName(name: string) : Promise<FooEntity[]>;
             findByName (name: string): Promise<FooEntity | undefined>;
             deleteAllByName (ids: string[]): Promise<void>;
             existsByName (id : string): Promise<boolean>;
