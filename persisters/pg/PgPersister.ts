@@ -6,6 +6,7 @@ import { EntityMetadata, KeyValuePairs, EntityField } from "../../types/EntityMe
 import { Persister } from "../../Persister";
 import { Entity, EntityIdTypes } from "../../Entity";
 import { EntityUtils } from "../../EntityUtils";
+import { map } from "../../../core/functions/map";
 
 /**
  * This persister implements entity store over PostgreSQL database.
@@ -32,7 +33,7 @@ export class PgPersister implements Persister {
         );
     }
 
-    public async insert<T extends Entity, ID extends EntityIdTypes> (entity: T | T[], metadata: EntityMetadata): Promise<T> {
+    public async insert<T extends Entity, ID extends EntityIdTypes> (entity: T | readonly T[], metadata: EntityMetadata): Promise<T> {
         const {tableName} = metadata;
         const fields = metadata.fields.filter((fld) => !this.isIdField(fld, metadata));
         const colNames = fields.map((col) => col.columnName).join(",");
@@ -94,8 +95,9 @@ export class PgPersister implements Persister {
         }
     }
 
-    public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: ID[], metadata: EntityMetadata): Promise<T[]> {
+    public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<T[]> {
         try {
+            const queryParams = map(ids, (item) => item);
             const {tableName} = metadata;
             const idColumnName = this.getIdColumnName(metadata);
             const placeholders = Array.from({length: ids.length}, (_, i) => i + 1)
@@ -104,7 +106,7 @@ export class PgPersister implements Persister {
             const select = `SELECT *
                             FROM ${tableName}
                             WHERE ${idColumnName} IN (${placeholders})`;
-            const result = await this.pool.query(select, ids);
+            const result = await this.pool.query(select, queryParams);
             return result.rows.map((row: any) => this.toEntity(row, metadata));
         } catch (err) {
             return await Promise.reject(err);
@@ -145,7 +147,7 @@ export class PgPersister implements Persister {
                        .reduce((prev, curr) => Object.assign(prev, curr)) as T;
     }
 
-    private getColumnName (propertyName: string, fields: EntityField[]): string {
+    private getColumnName (propertyName: string, fields: readonly EntityField[]): string {
         return fields.find((x) => x.propertyName === propertyName)?.columnName || "";
     }
 
@@ -181,7 +183,7 @@ export class PgPersister implements Persister {
         }
     }
 
-    public deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: ID[], metadata: EntityMetadata): Promise<void> {
+    public deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<void> {
         throw new TypeError('PgPersister.deleteAllById: Not implemented yet');
         // return Promise.resolve(undefined);
     }

@@ -22,9 +22,9 @@ export interface Repository<T extends Entity, ID extends EntityIdTypes> {
     deleteById (id : ID): Promise<void>;
 
     deleteAll (): Promise<void>;
-    deleteAll (entities: T[]): Promise<void>;
+    deleteAll (entities: readonly T[]): Promise<void>;
 
-    deleteAllById (ids: ID[]): Promise<void>;
+    deleteAllById (ids: readonly ID[]): Promise<void>;
 
     existsById (id : ID): Promise<boolean>;
 
@@ -44,7 +44,7 @@ export interface Repository<T extends Entity, ID extends EntityIdTypes> {
 
     save (entity: T): Promise<T>;
 
-    saveAll (entities: T[]): Promise<T[]>;
+    saveAll (entities: readonly T[]): Promise<T[]>;
 
 
     /**

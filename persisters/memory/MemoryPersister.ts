@@ -84,7 +84,7 @@ export class MemoryPersister implements Persister {
     }
 
     public async deleteAllById<T extends Entity, ID extends EntityIdTypes> (
-        ids: ID[],
+        ids: readonly ID[],
         metadata: EntityMetadata
     ): Promise<void> {
         const tableName = metadata.tableName;
@@ -140,7 +140,7 @@ export class MemoryPersister implements Persister {
     }
 
     public async findAllById<T extends Entity, ID extends EntityIdTypes> (
-        ids: ID[],
+        ids: readonly ID[],
         metadata: EntityMetadata
     ): Promise<T[]> {
         const tableName = metadata.tableName;
@@ -200,7 +200,7 @@ export class MemoryPersister implements Persister {
     }
 
     public async insert<T extends Entity, ID extends EntityIdTypes> (
-        entity: T[] | T,
+        entity: readonly T[] | T,
         metadata: EntityMetadata
     ): Promise<T> {
 

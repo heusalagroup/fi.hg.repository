@@ -96,7 +96,7 @@ export class MySqlPersister implements Persister {
     }
 
     public async insert<T extends Entity, ID extends EntityIdTypes>(
-        entities: T | T[],
+        entities: T | readonly T[],
         metadata: EntityMetadata
     ): Promise<T> {
 
@@ -229,7 +229,7 @@ export class MySqlPersister implements Persister {
     }
 
     public async deleteAllById<T extends Entity, ID extends EntityIdTypes>(
-        ids: ID[],
+        ids: readonly ID[],
         metadata: EntityMetadata
     ): Promise<void> {
         LOG.debug(`deleteAllById: ids = `, ids);
@@ -323,7 +323,7 @@ export class MySqlPersister implements Persister {
 
     public async findAllById<T extends Entity,
         ID extends EntityIdTypes>(
-        ids: ID[],
+        ids: readonly ID[],
         metadata: EntityMetadata
     ): Promise<T[]> {
         LOG.debug(`findAllById: ids = `, ids);
@@ -425,7 +425,7 @@ export class MySqlPersister implements Persister {
 
     private async _query(
         query: string,
-        values ?: any[]
+        values ?: readonly any[]
     ): Promise<QueryResultPair> {
         LOG.debug(`query = '${query}'`, values);
         return await new Promise((resolve, reject) => {

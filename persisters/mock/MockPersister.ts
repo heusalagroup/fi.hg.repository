@@ -23,7 +23,7 @@ export class MockPersister implements Persister {
     public async deleteAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<void> {
     }
 
-    public async deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: ID[], metadata: EntityMetadata): Promise<void> {
+    public async deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<void> {
     }
 
     public async deleteAllByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<void> {
@@ -40,7 +40,7 @@ export class MockPersister implements Persister {
         return [];
     }
 
-    public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: ID[], metadata: EntityMetadata): Promise<T[]> {
+    public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<T[]> {
         return [];
     }
 
@@ -56,7 +56,7 @@ export class MockPersister implements Persister {
         return undefined;
     }
 
-    public async insert<T extends Entity, ID extends EntityIdTypes> (entity: T[] | T, metadata: EntityMetadata): Promise<T> {
+    public async insert<T extends Entity, ID extends EntityIdTypes> (entity: readonly T[] | T, metadata: EntityMetadata): Promise<T> {
         const item = isArray(entity) ? first(entity) : entity;
         if(!item) throw new TypeError('Could not create item');
         return item;

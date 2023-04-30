@@ -47,7 +47,7 @@ export interface Persister {
         T extends Entity,
         ID extends EntityIdTypes
     > (
-        ids: ID[],
+        ids: readonly ID[],
         metadata: EntityMetadata
     ) : Promise<void>;
 
@@ -66,7 +66,7 @@ export interface Persister {
     ): Promise<T[]>;
 
     findAllById<T extends Entity, ID extends EntityIdTypes> (
-        ids      : ID[],
+        ids      : readonly ID[],
         metadata : EntityMetadata
     ): Promise<T[]>
 
@@ -88,7 +88,7 @@ export interface Persister {
     ): Promise<T | undefined>;
 
     insert<T extends Entity, ID extends EntityIdTypes> (
-        entity   : T | T[],
+        entity   : T | readonly T[],
         metadata : EntityMetadata
     ): Promise<T>;
 
