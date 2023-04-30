@@ -1,14 +1,14 @@
 // Copyright (c) 2023. Heusala Group Oy <info@hg.fi>. All rights reserved.
 
-import "../jest/matchers";
-import "../jest/matchers/index.d";
-import { RepositoryUtils } from "./RepositoryUtils";
-import { LogLevel } from "../core/types/LogLevel";
-import { createCrudRepositoryWithPersister, setRepositoryLogLevel } from "./Repository";
-import { CrudRepositoryImpl } from "./types/CrudRepositoryImpl";
-import { Repository } from "./types/Repository";
-import { Column, Entity, Id, Table } from "./Entity";
-import { MemoryPersister } from "./persisters/memory/MemoryPersister";
+import "../../../jest/matchers/index";
+import "../../../jest/matchers";
+import { RepositoryUtils } from "../../RepositoryUtils";
+import { LogLevel } from "../../../core/types/LogLevel";
+import { createCrudRepositoryWithPersister, setRepositoryLogLevel } from "../../Repository";
+import { CrudRepositoryImpl } from "../../types/CrudRepositoryImpl";
+import { Repository } from "../../types/Repository";
+import { Column, Entity, Id, Table } from "../../Entity";
+import { MemoryPersister } from "./MemoryPersister";
 
 describe('integration', () => {
 
