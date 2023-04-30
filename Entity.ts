@@ -1,64 +1,25 @@
 // Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
-import "reflect-metadata";
-import { EntityMetadata } from "./types/EntityMetadata";
-import { isString } from "../core/types/String";
 import { EntityLike } from "./types/EntityLike";
 import { ReadonlyJsonObject } from "../core/Json";
 import { EntityUtils } from "./EntityUtils";
-import { isFunction } from "../core/types/Function";
+import { EntityMetadata } from "./types/EntityMetadata";
+import { RepositoryMetadataUtils } from "./RepositoryMetadataUtils";
 
-const metadataKey = Symbol("metadata");
+export { Table } from "./Table";
+export { Column } from "./Column";
+export { Id } from "./Id";
 
-function updateMetadata (
-    target: any,
-    setValue: (metadata: EntityMetadata) => void
-) : void {
-    const metadata: EntityMetadata = Reflect.getMetadata(metadataKey, target) || {
-        tableName: "",
-        idPropertyName: "",
-        fields: [],
-        createEntity: undefined
-    };
-    setValue(metadata);
-    Reflect.defineMetadata(metadataKey, metadata, target);
-}
-
-export const Table = (tableName: string) => {
-    return (target: any) => {
-        const TargetEntity = isFunction(target) ? target : undefined;
-        updateMetadata(target, (metadata: EntityMetadata) => {
-            metadata.tableName = tableName;
-            if (TargetEntity) {
-                metadata.createEntity = (dto?: any) => new TargetEntity(dto);
-            }
-        });
-    };
-};
-
-export const Column = (columnName: string): PropertyDecorator => {
-    return (target: any, propertyName : string | symbol) => {
-        if (!isString(propertyName)) throw new TypeError(`Only string properties supported. The type was ${typeof propertyName}.`);
-        updateMetadata(target.constructor, (metadata: EntityMetadata) => {
-            metadata.fields.push({ propertyName, columnName });
-        });
-    };
-};
-
-export const Id = (): PropertyDecorator => {
-    return (target: any, propertyName : string | symbol) => {
-        if (!isString(propertyName)) throw new TypeError(`Only string properties supported. The type was ${typeof propertyName}.`);
-        updateMetadata(target.constructor, (metadata: EntityMetadata) => {
-            metadata.idPropertyName = propertyName;
-        });
-    };
-};
+/**
+ * Base type for all supported ID types
+ */
+export type EntityIdTypes = string | number;
 
 export class Entity implements EntityLike {
 
-    public getMetadata(): EntityMetadata {
-        return Reflect.getMetadata(metadataKey, this.constructor);
+    public getMetadata (): EntityMetadata {
+        return RepositoryMetadataUtils.getMetadata(this.constructor);
     }
 
     public toJSON () : ReadonlyJsonObject {
@@ -70,8 +31,3 @@ export class Entity implements EntityLike {
     }
 
 }
-
-/**
- * Base type for all supported ID types
- */
-export type EntityIdTypes = string | number;

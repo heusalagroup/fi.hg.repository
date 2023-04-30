@@ -1,7 +1,7 @@
 // Copyright (c) 2023. Heusala Group Oy <info@hg.fi>. All rights reserved.
 
 import { Column, Entity, Id, Table } from "./Entity";
-import { EntityField, EntityMetadata } from "./types/EntityMetadata";
+import { EntityMetadata } from "./types/EntityMetadata";
 import "../jest/matchers";
 
 describe('Entity', () => {
@@ -34,65 +34,67 @@ describe('Entity', () => {
 
     beforeEach(() => {
         entity = new FooEntity();
+        entity.fooId = '123';
+        entity.fooName = 'Foo 123';
+        entity.fooNumber = 123;
+        entity.fooBoolean = true;
         metadata = entity.getMetadata();
     });
 
-    describe('Table', () => {
+    describe('#getMetadata', () => {
 
-        it('can set tableName metadata', () => {
-            expect(metadata.tableName).toBe('foos');
-        });
-
-        it('can set createEntity metadata', () => {
-            expect(metadata.createEntity).toBeFunction();
+        it('can get metadata', () => {
+            const metadata = entity.getMetadata();
+            expect(metadata?.tableName).toBe("foos");
+            expect(metadata?.idPropertyName).toBe("fooId");
+            expect(metadata?.createEntity).toBeFunction();
+            expect(metadata?.fields).toStrictEqual(
+                [
+                   {
+                       "columnName": "foo_id",
+                       "propertyName": "fooId"
+                   },
+                   {
+                       "columnName": "foo_name",
+                       "propertyName": "fooName"
+                   },
+                   {
+                       "columnName": "foo_number",
+                       "propertyName": "fooNumber"
+                   },
+                   {
+                       "columnName": "foo_boolean",
+                       "propertyName": "fooBoolean"
+                   }
+               ]
+            );
+            expect(metadata?.relations).toStrictEqual([]);
         });
 
     });
 
-    describe('Id', () => {
+    describe('#toJSON', () => {
 
-        it('can set idPropertyName metadata', () => {
-            expect(metadata.idPropertyName).toBe('fooId');
+        it('can get entity as json', () => {
+            const json = entity.toJSON();
+            expect(json).toStrictEqual(
+                {
+                    fooId: '123',
+                    fooName: 'Foo 123',
+                    fooNumber: 123,
+                    fooBoolean: true
+                }
+            );
         });
 
     });
 
-    describe('Column', () => {
+    describe('#clone', () => {
 
-        it('can set fields metadata for string id field', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooId",
-                columnName: "foo_id"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
-        });
-
-        it('can set fields metadata for string property', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooName",
-                columnName: "foo_name"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
-        });
-
-        it('can set fields metadata for number property', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooNumber",
-                columnName: "foo_number"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
-        });
-
-        it('can set fields metadata for boolean property', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooBoolean",
-                columnName: "foo_boolean"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
+        it('can clone entity', () => {
+            const clonedEntity : FooEntity = entity.clone();
+            entity.fooBoolean = false;
+            expect(clonedEntity?.fooBoolean).toBe(true);
         });
 
     });

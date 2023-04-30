@@ -4,7 +4,7 @@
 import { createPool, Pool, FieldInfo, MysqlError } from "mysql";
 import { map } from "../../../core/functions/map";
 import { reduce } from "../../../core/functions/reduce";
-import { EntityMetadata, EntityField} from "../../types/EntityMetadata";
+import { EntityMetadata } from "../../types/EntityMetadata";
 import { Persister } from "../../Persister";
 import { RepositoryError } from "../../types/RepositoryError";
 import { RepositoryEntityError } from "../../types/RepositoryEntityError";
@@ -28,6 +28,7 @@ import { MySqlCharset } from "./types/MySqlCharset";
 import { isArray } from "../../../core/types/Array";
 import { LogService } from "../../../core/LogService";
 import { LogLevel } from "../../../core/types/LogLevel";
+import { EntityField } from "../../types/EntityField";
 
 export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 

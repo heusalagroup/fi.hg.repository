@@ -1,9 +1,10 @@
 // Copyright (c) 2023. Heusala Group Oy <info@hg.fi>. All rights reserved.
 
+import "../jest/matchers";
 import { EntityUtils } from "./EntityUtils";
 import { Column, Entity, Id, Table } from "./Entity";
-import { createEntityField, createEntityMetadata, EntityMetadata } from "./types/EntityMetadata";
-import "../jest/matchers";
+import { createEntityMetadata, EntityMetadata } from "./types/EntityMetadata";
+import { createEntityField } from "./types/EntityField";
 
 describe('EntityUtils', () => {
 
@@ -61,6 +62,7 @@ describe('EntityUtils', () => {
                     createEntityField('fooId', 'foo_id'),
                     createEntityField('fooName', 'foo_name')
                 ],
+                [],
                 (dto?: any) => new FooEntity(dto)
             );
 
@@ -106,6 +108,7 @@ describe('EntityUtils', () => {
                     createEntityField('fooId', 'foo_id'),
                     createEntityField('fooName', 'foo_name')
                 ],
+                [],
                 (dto?: any) => new FooEntity(dto)
             );
 
@@ -122,6 +125,7 @@ describe('EntityUtils', () => {
                     createEntityField('barId', 'bar_id'),
                     createEntityField('barName', 'bar_name')
                 ],
+                [],
                 (dto?: any) => new BarEntity(dto)
             );
 

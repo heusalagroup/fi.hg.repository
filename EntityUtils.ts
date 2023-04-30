@@ -2,12 +2,12 @@
 // Copyright (c) 2020-2023 Sendanor. All rights reserved.
 
 import { Entity, EntityIdTypes } from "./Entity";
-import { EntityMetadata, EntityField, KeyValuePairs } from "./types/EntityMetadata";
+import { EntityMetadata } from "./types/EntityMetadata";
 import { RepositoryError } from "./types/RepositoryError";
 import { trim } from "../core/functions/trim";
 import { isString } from "../core/types/String";
 import { MySqlDateTime } from "./MySqlDateTime";
-import { isReadonlyJsonAny, parseReadonlyJsonObject, ReadonlyJsonAny, ReadonlyJsonObject } from "../core/Json";
+import { isReadonlyJsonAny, parseReadonlyJsonObject, ReadonlyJsonObject } from "../core/Json";
 import { isNumber } from "../core/types/Number";
 import { reduce } from "../core/functions/reduce";
 import { LogService } from "../core/LogService";
@@ -18,9 +18,10 @@ import { keys } from "../core/functions/keys";
 import { isUndefined } from "../core/types/undefined";
 import { isNull } from "../core/types/Null";
 import { isBoolean } from "../core/types/Boolean";
-import { isNumberArray } from "../core/types/NumberArray";
 import { isArray } from "../core/types/Array";
 import { map } from "../core/functions/map";
+import { EntityField } from "./types/EntityField";
+import { KeyValuePairs } from "./types/KeyValuePairs";
 
 const LOG = LogService.createLogger('EntityUtils');
 

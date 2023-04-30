@@ -18,7 +18,7 @@ describe('integration', () => {
         CrudRepositoryImpl.setLogLevel(LogLevel.NONE);
     });
 
-    describe('MemoryRepository', () => {
+    describe('Repository with MemoryPersister', () => {
 
         interface FooRepository extends Repository<FooEntity, string> {
 

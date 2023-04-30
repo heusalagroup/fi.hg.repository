@@ -6,11 +6,12 @@ import { reduce } from "../../core/functions/reduce";
 import { Entity, EntityIdTypes } from "../Entity";
 import { Persister } from "../Persister";
 import { EntityUtils } from "../EntityUtils";
-import { EntityMetadata, KeyValuePairs } from "./EntityMetadata";
+import { EntityMetadata } from "./EntityMetadata";
 import { RepositoryEntityError } from "./RepositoryEntityError";
 import { CrudRepository } from "../CrudRepository";
 import { LogService } from "../../core/LogService";
 import { LogLevel } from "../../core/types/LogLevel";
+import { KeyValuePairs } from "./KeyValuePairs";
 
 const LOG = LogService.createLogger('CrudRepositoryImpl');
 

@@ -2,11 +2,13 @@
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import { Pool } from "pg";
-import { EntityMetadata, KeyValuePairs, EntityField } from "../../types/EntityMetadata";
+import { EntityMetadata } from "../../types/EntityMetadata";
 import { Persister } from "../../Persister";
 import { Entity, EntityIdTypes } from "../../Entity";
 import { EntityUtils } from "../../EntityUtils";
 import { map } from "../../../core/functions/map";
+import { EntityField } from "../../types/EntityField";
+import { KeyValuePairs } from "../../types/KeyValuePairs";
 
 /**
  * This persister implements entity store over PostgreSQL database.

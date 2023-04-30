@@ -3,11 +3,12 @@
 
 import {forEach} from "../core/functions/forEach";
 import { has} from "../core/functions/has";
-import { EntityMetadata, EntityField } from "./types/EntityMetadata";
+import { EntityMetadata } from "./types/EntityMetadata";
 import { CrudRepository } from "./CrudRepository";
 import { Entity, EntityIdTypes } from "./Entity";
 import { LogService } from "../core/LogService";
 import { LogLevel } from "../core/types/LogLevel";
+import { EntityField } from "./types/EntityField";
 
 const LOG = LogService.createLogger('RepositoryUtils');
 

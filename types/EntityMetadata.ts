@@ -2,31 +2,9 @@
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import "reflect-metadata";
-import { CreateEntityLikeCallback, EntityLike } from "./EntityLike";
-
-export interface EntityField {
-
-    /**
-     * The property name on the class
-     */
-    propertyName : string;
-
-    /**
-     * The field name in the database table
-     */
-    columnName   : string;
-
-}
-
-export function createEntityField (
-    propertyName : string,
-    columnName   : string
-) {
-    return {
-        propertyName,
-        columnName
-    };
-}
+import { CreateEntityLikeCallback } from "./EntityLike";
+import { EntityField } from "./EntityField";
+import { EntityRelation } from "./EntityRelation";
 
 export interface EntityMetadata {
 
@@ -45,6 +23,8 @@ export interface EntityMetadata {
      */
     fields         : EntityField[];
 
+    relations : EntityRelation[];
+
     createEntity : CreateEntityLikeCallback | undefined;
 
 }
@@ -53,16 +33,14 @@ export function createEntityMetadata (
     tableName      : string,
     idPropertyName : string,
     fields         : EntityField[],
-    createEntity   : CreateEntityLikeCallback | undefined
+    relations      : EntityRelation[],
+    createEntity   : CreateEntityLikeCallback | undefined,
 ) {
     return {
         tableName,
         idPropertyName,
         fields,
+        relations,
         createEntity
     };
-}
-
-export interface KeyValuePairs {
-    [key: string]: any;
 }

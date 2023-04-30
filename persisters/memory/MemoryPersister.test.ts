@@ -1,8 +1,9 @@
 // Copyright (c) 2023. Heusala Group Oy <info@hg.fi>. All rights reserved.
 
 import { MemoryPersister } from "./MemoryPersister";
-import { createEntityField, createEntityMetadata, EntityMetadata } from "../../types/EntityMetadata";
+import { createEntityMetadata, EntityMetadata } from "../../types/EntityMetadata";
 import { Column, Entity, Id, Table } from "../../Entity";
+import { createEntityField } from "../../types/EntityField";
 
 describe('MemoryPersister', () => {
 
@@ -65,6 +66,7 @@ describe('MemoryPersister', () => {
                     createEntityField('fooId', 'foo_id'),
                     createEntityField('fooName', 'foo_name')
                 ],
+                [],
                 (dto?: any) => new FooEntity(dto)
             );
             barMetadata = createEntityMetadata(
@@ -74,6 +76,7 @@ describe('MemoryPersister', () => {
                     createEntityField('barId', 'bar_id'),
                     createEntityField('barName', 'bar_name')
                 ],
+                [],
                 (dto?: any) => new BarEntity(dto)
             );
             barEntity1 = await persister.insert(
