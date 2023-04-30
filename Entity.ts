@@ -2,22 +2,24 @@
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import "reflect-metadata";
-import { EntityField, EntityMetadata } from "./types/EntityMetadata";
+import { EntityMetadata } from "./types/EntityMetadata";
 import { isString } from "../core/types/String";
-import { CreateEntityLikeCallback, EntityLike } from "./types/EntityLike";
-import { reduce } from "../core/functions/reduce";
-import { isReadonlyJsonAny, ReadonlyJsonAny, ReadonlyJsonObject } from "../core/Json";
-import { isFunction } from "../core/types/Function";
+import { EntityLike } from "./types/EntityLike";
+import { ReadonlyJsonObject } from "../core/Json";
 import { EntityUtils } from "./EntityUtils";
+import { isFunction } from "../core/types/Function";
 
 const metadataKey = Symbol("metadata");
 
-function updateMetadata(target: any, setValue: (metadata: EntityMetadata) => void) : void {
+function updateMetadata (
+    target: any,
+    setValue: (metadata: EntityMetadata) => void
+) : void {
     const metadata: EntityMetadata = Reflect.getMetadata(metadataKey, target) || {
         tableName: "",
         idPropertyName: "",
         fields: [],
-        createEntity: () => undefined
+        createEntity: undefined
     };
     setValue(metadata);
     Reflect.defineMetadata(metadataKey, metadata, target);
@@ -25,12 +27,12 @@ function updateMetadata(target: any, setValue: (metadata: EntityMetadata) => voi
 
 export const Table = (tableName: string) => {
     return (target: any) => {
-        const TargetEntity = target;
+        const TargetEntity = isFunction(target) ? target : undefined;
         updateMetadata(target, (metadata: EntityMetadata) => {
             metadata.tableName = tableName;
-            metadata.createEntity = (dto?: any) => {
-                return new TargetEntity(dto);
-            };
+            if (TargetEntity) {
+                metadata.createEntity = (dto?: any) => new TargetEntity(dto);
+            }
         });
     };
 };
