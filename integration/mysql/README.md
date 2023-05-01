@@ -26,6 +26,13 @@ export TEST_MYSQL_CHARSET='LATIN1_SWEDISH_CI'
 The test are executed if these variables are defined and `TEST_SCOPES` 
 includes `integration`.
 
+You can start tests from our project testing environment (not part of this 
+repository):
+
+```shell
+TEST_MYSQL_PASSWORD='rxPe4XHbonLeHwjvKdq9R9aDWf1xiUje' TEST_SCOPES=integration,hg npm test
+```
+
 ### MySQL console
 
 ```shell

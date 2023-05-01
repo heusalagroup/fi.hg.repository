@@ -19,7 +19,11 @@ describe('Repository integrations', () => {
     });
 
     describe('Memory-based', () => {
-        allRepositoryTests(() => new MemoryPersister());
+        allRepositoryTests(
+            () => new MemoryPersister(),
+            true,
+            true
+        );
     });
 
 });

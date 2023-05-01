@@ -7,8 +7,8 @@ import { Persister } from "../../Persister";
 
 export const allRepositoryTests = (
     createPersister     : () => Persister,
-    basicCrud           : boolean = true,
-    entityRelationships : boolean = true
+    basicCrud           : boolean,
+    entityRelationships : boolean
 ) => {
 
     let context : RepositoryTestContext = createRepositoryTestContext();
