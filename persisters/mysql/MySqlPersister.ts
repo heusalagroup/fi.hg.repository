@@ -246,9 +246,7 @@ export class MySqlPersister implements Persister {
         LOG.debug(`deleteAllById: idColumnName = `, idColumnName);
         const queryValues = [`${this._tablePrefix}${tableName}`, idColumnName, ids];
         LOG.debug(`deleteAllById: queryValues = `, queryValues);
-        const [results] = await this._query(DELETE_ALL_BY_ID_QUERY_STRING, queryValues);
-        // LOG.debug(`deleteAllById: results = `, results);
-        return results.map((row: any) => EntityUtils.toEntity<T, ID>(row, metadata));
+        await this._query(DELETE_ALL_BY_ID_QUERY_STRING, queryValues);
     }
 
     public async deleteAllByProperty<
@@ -389,11 +387,12 @@ export class MySqlPersister implements Persister {
         LOG.debug(`countByProperty: property = `, property);
         LOG.debug(`countByProperty: value = `, value);
         LOG.debug(`countByProperty: metadata = `, metadata);
-        const {tableName} = metadata;
+        const {tableName, fields} = metadata;
         LOG.debug(`countByProperty: tableName = `, tableName);
+        const columnName : string = EntityUtils.getColumnName(property, fields);
         const [results] = await this._query(
             COUNT_BY_COLUMN_QUERY_STRING,
-            ['count', `${this._tablePrefix}${tableName}`, property, value]
+            ['count', `${this._tablePrefix}${tableName}`, columnName, value]
         );
         // LOG.debug(`countByProperty: results = `, results);
         if (results.length !== 1) {
