@@ -120,6 +120,9 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             persister
         );
 
+        await cartRepository.deleteAll();
+        await cartItemRepository.deleteAll();
+        
         cartA = new CartEntity({cartName: cartA_name});
         cartA = await persister.insert(
             cartA,

@@ -6,6 +6,7 @@ import { Column, Entity, Id, Table } from "../../Entity";
 import { RepositoryTestContext } from "../types/RepositoryTestContext";
 import { Persister } from "../../Persister";
 import { createCrudRepositoryWithPersister } from "../../CrudRepository";
+import { find } from "../../../core/functions/find";
 
 export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
@@ -105,6 +106,9 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
             new BarEntity(),
             persister
         );
+
+        await fooRepository.deleteAll();
+        await barRepository.deleteAll();
 
         barEntity1 = await persister.insert(
             new BarEntity({barName: barEntityName1}),
@@ -241,12 +245,24 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
             const items = await barRepository.findAll();
             expect(items).toBeArray();
             expect(items?.length).toBe(3);
-            expect(items[0]?.barId).toBe(barEntityId1);
-            expect(items[0]?.barName).toBe(barEntityName1);
-            expect(items[1]?.barId).toBe(barEntityId2);
-            expect(items[1]?.barName).toBe(barEntityName2);
-            expect(items[2]?.barId).toBe(barEntityId3);
-            expect(items[2]?.barName).toBe(barEntityName3);
+
+            // Order may be different
+            const item1 = find(items, (item) => item.barId === barEntityId1);
+            const item2 = find(items, (item) => item.barId === barEntityId2);
+            const item3 = find(items, (item) => item.barId === barEntityId3);
+
+            expect(item1).toBeDefined();
+            expect(item1?.barId).toBe(barEntityId1);
+            expect(item1?.barName).toBe(barEntityName1);
+
+            expect(item2).toBeDefined();
+            expect(item2?.barId).toBe(barEntityId2);
+            expect(item2?.barName).toBe(barEntityName2);
+
+            expect(item3).toBeDefined();
+            expect(item3?.barId).toBe(barEntityId3);
+            expect(item3?.barName).toBe(barEntityName3);
+
         });
 
     });
