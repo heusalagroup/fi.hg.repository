@@ -3,9 +3,9 @@
 import "../jest/matchers";
 import { Column, Entity, Id, Table } from "./Entity";
 import { EntityMetadata } from "./types/EntityMetadata";
-import { EntityField } from "./types/EntityField";
+import { createEntityField, EntityField } from "./types/EntityField";
 
-describe('Entity', () => {
+describe('Column', () => {
 
     @Table('foos')
     class FooEntity extends Entity {
@@ -38,44 +38,28 @@ describe('Entity', () => {
         metadata = entity.getMetadata();
     });
 
-    describe('Column', () => {
+    it('can set fields metadata for string id field', () => {
+        const expectedField : EntityField = createEntityField("fooId", "foo_id");
+        expect(metadata.fields).toBeArray();
+        expect(metadata.fields).toContainEqual(expectedField);
+    });
 
-        it('can set fields metadata for string id field', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooId",
-                columnName: "foo_id"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
-        });
+    it('can set fields metadata for string property', () => {
+        const expectedField : EntityField = createEntityField("fooName", "foo_name");
+        expect(metadata.fields).toBeArray();
+        expect(metadata.fields).toContainEqual(expectedField);
+    });
 
-        it('can set fields metadata for string property', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooName",
-                columnName: "foo_name"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
-        });
+    it('can set fields metadata for number property', () => {
+        const expectedField : EntityField = createEntityField("fooNumber","foo_number");
+        expect(metadata.fields).toBeArray();
+        expect(metadata.fields).toContainEqual(expectedField);
+    });
 
-        it('can set fields metadata for number property', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooNumber",
-                columnName: "foo_number"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
-        });
-
-        it('can set fields metadata for boolean property', () => {
-            const expectedField : EntityField = {
-                propertyName: "fooBoolean",
-                columnName: "foo_boolean"
-            };
-            expect(metadata.fields).toBeArray();
-            expect(metadata.fields).toContainEqual(expectedField);
-        });
-
+    it('can set fields metadata for boolean property', () => {
+        const expectedField : EntityField = createEntityField("fooBoolean", "foo_boolean");
+        expect(metadata.fields).toBeArray();
+        expect(metadata.fields).toContainEqual(expectedField);
     });
 
 });

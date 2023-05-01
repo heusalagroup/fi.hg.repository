@@ -5,7 +5,7 @@ import { EntityLike } from "./types/EntityLike";
 import { ReadonlyJsonObject } from "../core/Json";
 import { EntityUtils } from "./EntityUtils";
 import { EntityMetadata } from "./types/EntityMetadata";
-import { RepositoryMetadataUtils } from "./RepositoryMetadataUtils";
+import { EntityMetadataUtils } from "./EntityMetadataUtils";
 
 export { Table } from "./Table";
 export { Column } from "./Column";
@@ -19,7 +19,7 @@ export type EntityIdTypes = string | number;
 export class Entity implements EntityLike {
 
     public getMetadata (): EntityMetadata {
-        return RepositoryMetadataUtils.getMetadata(this.constructor);
+        return EntityMetadataUtils.getMetadata(this.constructor);
     }
 
     public toJSON () : ReadonlyJsonObject {
@@ -30,4 +30,8 @@ export class Entity implements EntityLike {
         return EntityUtils.clone(this, this.getMetadata());
     }
 
+}
+
+export function isEntity (value: unknown) : value is Entity {
+    return !!value && value instanceof Entity;
 }

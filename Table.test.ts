@@ -4,7 +4,7 @@ import "../jest/matchers";
 import { Column, Entity, Id, Table } from "./Entity";
 import { EntityMetadata } from "./types/EntityMetadata";
 
-describe('Entity', () => {
+describe('Table', () => {
 
     @Table('foos')
     class FooEntity extends Entity {
@@ -37,16 +37,12 @@ describe('Entity', () => {
         metadata = entity.getMetadata();
     });
 
-    describe('Table', () => {
+    it('can set tableName metadata', () => {
+        expect(metadata.tableName).toBe('foos');
+    });
 
-        it('can set tableName metadata', () => {
-            expect(metadata.tableName).toBe('foos');
-        });
-
-        it('can set createEntity metadata', () => {
-            expect(metadata.createEntity).toBeFunction();
-        });
-
+    it('can set createEntity metadata', () => {
+        expect(metadata.createEntity).toBeFunction();
     });
 
 });

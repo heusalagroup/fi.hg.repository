@@ -1,10 +1,10 @@
 // Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
-import "reflect-metadata";
 import { CreateEntityLikeCallback } from "./EntityLike";
 import { EntityField } from "./EntityField";
-import { EntityRelation } from "./EntityRelation";
+import { EntityRelationOneToMany } from "./EntityRelationOneToMany";
+import { EntityRelationManyToOne } from "./EntityRelationManyToOne";
 
 export interface EntityMetadata {
 
@@ -23,24 +23,27 @@ export interface EntityMetadata {
      */
     fields         : EntityField[];
 
-    relations : EntityRelation[];
+    oneToManyRelations : EntityRelationOneToMany[];
+    manyToOneRelations : EntityRelationManyToOne[];
 
     createEntity : CreateEntityLikeCallback | undefined;
 
 }
 
 export function createEntityMetadata (
-    tableName      : string,
-    idPropertyName : string,
-    fields         : EntityField[],
-    relations      : EntityRelation[],
-    createEntity   : CreateEntityLikeCallback | undefined,
-) {
+    tableName          : string,
+    idPropertyName     : string,
+    fields             : EntityField[],
+    oneToManyRelations : EntityRelationOneToMany[],
+    manyToOneRelations : EntityRelationManyToOne[],
+    createEntity       : CreateEntityLikeCallback | undefined,
+) : EntityMetadata {
     return {
         tableName,
         idPropertyName,
         fields,
-        relations,
+        oneToManyRelations,
+        manyToOneRelations,
         createEntity
     };
 }

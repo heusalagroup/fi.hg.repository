@@ -1,8 +1,11 @@
 // Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
-import "reflect-metadata";
+import { EntityFieldType, parseEntityFieldType } from "./EntityFieldType";
+
 export interface EntityField {
+
+    fieldType : EntityFieldType;
 
     /**
      * The property name on the class
@@ -14,14 +17,25 @@ export interface EntityField {
      */
     columnName   : string;
 
+    /**
+     * If enabled, this field can be left undefined.
+     *
+     * Default is `true`.
+     */
+    nullable   : boolean;
+
 }
 
 export function createEntityField (
     propertyName : string,
-    columnName   : string
-) {
+    columnName   : string,
+    nullable    ?: boolean | undefined,
+    fieldType   ?: EntityFieldType | undefined
+) : EntityField {
     return {
         propertyName,
-        columnName
+        columnName,
+        nullable : nullable ?? true,
+        fieldType : parseEntityFieldType(fieldType) ?? EntityFieldType.UNKNOWN
     };
 }

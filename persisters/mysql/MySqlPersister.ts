@@ -96,6 +96,10 @@ export class MySqlPersister implements Persister {
         );
     }
 
+    public setupEntityMetadata (metadata: EntityMetadata) : void {
+
+    }
+
     public async insert<T extends Entity, ID extends EntityIdTypes>(
         entities: T | readonly T[],
         metadata: EntityMetadata

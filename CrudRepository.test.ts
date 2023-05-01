@@ -1,6 +1,6 @@
 // Copyright (c) 2023. Heusala Group Oy <info@hg.fi>. All rights reserved.
 
-import { createCrudRepositoryWithPersister, setRepositoryLogLevel } from "./Repository";
+import "../jest/matchers";
 import { Column, Entity, Id, Table } from "./Entity";
 import { Repository } from "./types/Repository";
 import { MockPersister } from "./persisters/mock/MockPersister";
@@ -8,14 +8,13 @@ import { Persister } from "./Persister";
 import { RepositoryUtils } from "./RepositoryUtils";
 import { LogLevel } from "../core/types/LogLevel";
 import { CrudRepositoryImpl } from "./types/CrudRepositoryImpl";
-import "../jest/matchers";
-import "../jest/matchers/index.d";
+import { createCrudRepositoryWithPersister, setCrudRepositoryLogLevel } from "./CrudRepository";
 
-describe('Repository', () => {
+describe('CrudRepository', () => {
 
     beforeAll(() => {
         RepositoryUtils.setLogLevel(LogLevel.NONE);
-        setRepositoryLogLevel(LogLevel.NONE);
+        setCrudRepositoryLogLevel(LogLevel.NONE);
         CrudRepositoryImpl.setLogLevel(LogLevel.NONE);
     });
 

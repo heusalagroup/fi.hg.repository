@@ -12,6 +12,9 @@ import { isArray } from "../../../core/types/Array";
  */
 export class MockPersister implements Persister {
 
+    public async setupEntityMetadata (metadata: EntityMetadata) : Promise<void> {
+    }
+
     public async count<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<number> {
         return 0;
     }

@@ -15,6 +15,8 @@ export interface StaticRepository <T extends Entity, ID extends EntityIdTypes> {
 
 export interface Repository<T extends Entity, ID extends EntityIdTypes> {
 
+    setup () : Promise<void>;
+
     count () : Promise<number>;
 
     delete (entity: T): Promise<void>;

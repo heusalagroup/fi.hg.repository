@@ -35,6 +35,10 @@ export class CrudRepositoryImpl<T extends Entity, ID extends EntityIdTypes>
         LOG.debug(`constructor: emptyMetadata = `, emptyMetadata);
     }
 
+    public async setup () : Promise<void> {
+        await this._persister.setupEntityMetadata(this._entityMetadata);
+    }
+
     /**
      * You shouldn't use Persister directly through this API.
      *

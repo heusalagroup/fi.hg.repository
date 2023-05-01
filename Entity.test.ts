@@ -52,23 +52,32 @@ describe('Entity', () => {
                 [
                    {
                        "columnName": "foo_id",
-                       "propertyName": "fooId"
+                       "propertyName": "fooId",
+                       "fieldType": "UNKNOWN",
+                       "nullable": true
                    },
                    {
                        "columnName": "foo_name",
-                       "propertyName": "fooName"
+                       "propertyName": "fooName",
+                       "fieldType": "UNKNOWN",
+                       "nullable": true
                    },
                    {
                        "columnName": "foo_number",
-                       "propertyName": "fooNumber"
+                       "propertyName": "fooNumber",
+                       "fieldType": "UNKNOWN",
+                       "nullable": true
                    },
                    {
                        "columnName": "foo_boolean",
-                       "propertyName": "fooBoolean"
+                       "propertyName": "fooBoolean",
+                       "fieldType": "UNKNOWN",
+                       "nullable": true
                    }
                ]
             );
-            expect(metadata?.relations).toStrictEqual([]);
+            expect(metadata?.oneToManyRelations).toStrictEqual([]);
+            expect(metadata?.manyToOneRelations).toStrictEqual([]);
         });
 
     });

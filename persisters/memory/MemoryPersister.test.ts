@@ -67,6 +67,7 @@ describe('MemoryPersister', () => {
                     createEntityField('fooName', 'foo_name')
                 ],
                 [],
+                [],
                 (dto?: any) => new FooEntity(dto)
             );
             barMetadata = createEntityMetadata(
@@ -76,6 +77,7 @@ describe('MemoryPersister', () => {
                     createEntityField('barId', 'bar_id'),
                     createEntityField('barName', 'bar_name')
                 ],
+                [],
                 [],
                 (dto?: any) => new BarEntity(dto)
             );

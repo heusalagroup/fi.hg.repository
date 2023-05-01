@@ -35,6 +35,10 @@ export class PgPersister implements Persister {
         );
     }
 
+    public setupEntityMetadata (metadata: EntityMetadata) : void {
+
+    }
+
     public async insert<T extends Entity, ID extends EntityIdTypes> (entity: T | readonly T[], metadata: EntityMetadata): Promise<T> {
         const {tableName} = metadata;
         const fields = metadata.fields.filter((fld) => !this.isIdField(fld, metadata));

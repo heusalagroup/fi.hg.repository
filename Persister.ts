@@ -1,9 +1,12 @@
-// Copyright (c) 2020, 2021 Sendanor. All rights reserved.
+// Copyright (c) 2022-2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
+// Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import { EntityMetadata } from "./types/EntityMetadata";
 import { Entity, EntityIdTypes } from "./Entity";
 
 export interface Persister {
+
+    setupEntityMetadata (metadata: EntityMetadata) : void;
 
     count<
         T extends Entity,

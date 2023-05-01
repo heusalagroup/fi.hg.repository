@@ -63,6 +63,7 @@ describe('EntityUtils', () => {
                     createEntityField('fooName', 'foo_name')
                 ],
                 [],
+                [],
                 (dto?: any) => new FooEntity(dto)
             );
 
@@ -109,6 +110,7 @@ describe('EntityUtils', () => {
                     createEntityField('fooName', 'foo_name')
                 ],
                 [],
+                [],
                 (dto?: any) => new FooEntity(dto)
             );
 
@@ -125,6 +127,7 @@ describe('EntityUtils', () => {
                     createEntityField('barId', 'bar_id'),
                     createEntityField('barName', 'bar_name')
                 ],
+                [],
                 [],
                 (dto?: any) => new BarEntity(dto)
             );
