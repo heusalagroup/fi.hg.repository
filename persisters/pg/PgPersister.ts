@@ -1,7 +1,7 @@
 // Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
-import { Pool } from "pg";
+import { Pool, QueryResult } from "pg";
 import { EntityMetadata } from "../../types/EntityMetadata";
 import { Persister } from "../../Persister";
 import { Entity, EntityIdTypes } from "../../Entity";
@@ -9,13 +9,24 @@ import { EntityUtils } from "../../EntityUtils";
 import { map } from "../../../core/functions/map";
 import { EntityField } from "../../types/EntityField";
 import { KeyValuePairs } from "../../types/KeyValuePairs";
+import { first } from "../../../core/functions/first";
+import { reduce } from "../../../core/functions/reduce";
+import { LogService } from "../../../core/LogService";
+import { LogLevel } from "../../../core/types/LogLevel";
+import { isSafeInteger } from "../../../core/types/Number";
+
+const LOG = LogService.createLogger('PgPersister');
 
 /**
  * This persister implements entity store over PostgreSQL database.
  */
 export class PgPersister implements Persister {
 
-    private pool: Pool;
+    public static setLogLevel (level: LogLevel) {
+        LOG.setLogLevel(level);
+    }
+
+    private _pool: Pool;
 
     public constructor (
         host: string,
@@ -24,7 +35,7 @@ export class PgPersister implements Persister {
         database: string,
         ssl : boolean | undefined = undefined
     ) {
-        this.pool = new Pool(
+        this._pool = new Pool(
             {
                 host,
                 user,
@@ -41,7 +52,7 @@ export class PgPersister implements Persister {
 
     public async insert<T extends Entity, ID extends EntityIdTypes> (entity: T | readonly T[], metadata: EntityMetadata): Promise<T> {
         const {tableName} = metadata;
-        const fields = metadata.fields.filter((fld) => !this.isIdField(fld, metadata));
+        const fields = metadata.fields.filter((fld) => !this._isIdField(fld, metadata));
         const colNames = fields.map((col) => col.columnName).join(",");
         const values = fields.map((col) => col.propertyName).map((p) => (entity as any)[p]);
         const placeholders = Array.from({length: fields.length}, (_, i) => i + 1)
@@ -49,172 +60,207 @@ export class PgPersister implements Persister {
                                   .reduce((prev, curr) => `${prev},${curr}`);
         const insert = `INSERT INTO ${tableName}(${colNames})
                         VALUES (${placeholders}) RETURNING *`;
-        try {
-            const result = await this.pool.query(insert, values);
-            return this.toEntity<T, ID>(result.rows[0], metadata);
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        const result = await this._query(insert, values);
+        if (!result) throw new TypeError(`Result was not defined: ${result}`);
+        const rows = result.rows;
+        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
+        const row = first(rows);
+        if (!row) throw new TypeError(`Result row was not found: ${rows}`);
+        return this._toEntity<T, ID>(row, metadata);
     }
 
     public async update<T extends Entity, ID extends EntityIdTypes> (entity: T, metadata: EntityMetadata): Promise<T> {
         const {tableName} = metadata;
-        const idColName = this.getIdColumnName(metadata);
-        const id = this.getId(entity, metadata);
-        const fields = metadata.fields.filter((fld) => !this.isIdField(fld, metadata));
+        const idColName = this._getIdColumnName(metadata);
+        const id = this._getId(entity, metadata);
+        const fields = metadata.fields.filter((fld) => !this._isIdField(fld, metadata));
         const setters = fields.map((fld, idx) => `${fld.columnName}=$${idx + 2}`).reduce((prev, curr) => `${prev},${curr}`);
         const values = [ id ].concat(fields.map((col) => col.propertyName).map((p) => (entity as any)[p]));
         const update = `UPDATE ${tableName}
                         SET ${setters}
                         WHERE ${idColName} = $1 RETURNING *`;
-        try {
-            const result = await this.pool.query(update, values);
-            return this.toEntity<T, ID>(result.rows[0], metadata);
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        const result = await this._query(update, values);
+        if (!result) throw new TypeError(`Result was not defined: ${result}`);
+        const rows = result.rows;
+        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
+        const row = first(rows);
+        if (!row) throw new TypeError(`Result row was not found: ${rows}`);
+        return this._toEntity<T, ID>(row, metadata);
     }
 
     public async delete<T extends Entity, ID extends EntityIdTypes> (entity: T, metadata: EntityMetadata): Promise<void> {
         const {tableName} = metadata;
-        const idColName = this.getIdColumnName(metadata);
-        const id = this.getId(entity, metadata);
+        const idColName = this._getIdColumnName(metadata);
+        const id = this._getId(entity, metadata);
         const sql = `DELETE
                      FROM ${tableName}
                      WHERE ${idColName} = $1 RETURNING *`;
-        try {
-            return this.pool.query(sql, [ id ]).then();
-        } catch (err) {
-            return Promise.reject(err);
-        }
+        await this._query(sql, [ id ]);
     }
 
     public async findAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<T[]> {
         const {tableName} = metadata;
         const select = `SELECT *
                         FROM ${tableName}`;
-        try {
-            const result = await this.pool.query(select);
-            return result.rows.map((row: any) => this.toEntity(row, metadata));
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        const result = await this._query(select, []);
+        return result.rows.map((row: any) => this._toEntity(row, metadata));
     }
 
     public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<T[]> {
-        try {
-            const queryParams = map(ids, (item) => item);
-            const {tableName} = metadata;
-            const idColumnName = this.getIdColumnName(metadata);
-            const placeholders = Array.from({length: ids.length}, (_, i) => i + 1)
-                                      .map((i) => `$${i}`)
-                                      .reduce((prev, curr) => `${prev},${curr}`);
-            const select = `SELECT *
-                            FROM ${tableName}
-                            WHERE ${idColumnName} IN (${placeholders})`;
-            const result = await this.pool.query(select, queryParams);
-            return result.rows.map((row: any) => this.toEntity(row, metadata));
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        const queryParams = map(ids, (item) => item);
+        const {tableName} = metadata;
+        const idColumnName = this._getIdColumnName(metadata);
+        const placeholders = Array.from({length: ids.length}, (_, i) => i + 1)
+                                  .map((i) => `$${i}`)
+                                  .reduce((prev, curr) => `${prev},${curr}`);
+        const select = `SELECT *
+                        FROM ${tableName}
+                        WHERE ${idColumnName} IN (${placeholders})`;
+        const result = await this._query(select, queryParams);
+        return result.rows.map((row: any) => this._toEntity(row, metadata));
     }
 
     public async findById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<T | undefined> {
         const {tableName} = metadata;
-        const idColumnName = this.getIdColumnName(metadata);
+        const idColumnName = this._getIdColumnName(metadata);
         const select = `SELECT *
                         FROM ${tableName}
                         WHERE ${idColumnName} = $1`;
-        try {
-            const result = await this.pool.query(select, [ id ]);
-            return this.toEntity<T, ID>(result.rows[0], metadata);
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        const result = await this._query(select, [ id ]);
+        if (!result) throw new TypeError(`Result was not defined: ${result}`);
+        const rows = result.rows;
+        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
+        const row = first(rows);
+        if (!row) return undefined;
+        return this._toEntity<T, ID>(row, metadata);
     }
 
     public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<T[]> {
-        try {
-            const {tableName} = metadata;
-            const columnName = this.getColumnName(property, metadata.fields);
-            const select = `SELECT *
-                            FROM ${tableName}
-                            WHERE ${columnName} = $1`;
-            const result = await this.pool.query(select, [ value ]);
-            return result.rows.map((row: any) => this.toEntity(row, metadata));
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        const {tableName} = metadata;
+        const columnName = this._getColumnName(property, metadata.fields);
+        const select = `SELECT *
+                        FROM ${tableName}
+                        WHERE ${columnName} = $1`;
+        const result = await this._query(select, [ value ]);
+        return result.rows.map((row: any) => this._toEntity(row, metadata));
     }
 
-    private toEntity<T extends Entity, ID extends EntityIdTypes> (entity: KeyValuePairs, metadata: EntityMetadata): T {
+    private _toEntity<T extends Entity, ID extends EntityIdTypes> (
+        entity: KeyValuePairs,
+        metadata: EntityMetadata
+    ): T {
+        if (!entity) throw new TypeError(`Entity was not defined: ${entity}`);
+        if (!metadata) throw new TypeError(`Entity metadata was not defined: ${metadata}`);
         return metadata.fields
                        .map((fld) => ({[fld.propertyName]: entity[fld.columnName]}))
                        .reduce((prev, curr) => Object.assign(prev, curr)) as T;
     }
 
-    private getColumnName (propertyName: string, fields: readonly EntityField[]): string {
+    private _getColumnName (propertyName: string, fields: readonly EntityField[]): string {
         return fields.find((x) => x.propertyName === propertyName)?.columnName || "";
     }
 
-    private getIdColumnName (metadata: EntityMetadata) {
-        return this.getColumnName(metadata.idPropertyName, metadata.fields);
+    private _getIdColumnName (metadata: EntityMetadata) {
+        return this._getColumnName(metadata.idPropertyName, metadata.fields);
     }
 
-    private getId (entity: KeyValuePairs, metadata: EntityMetadata) {
+    private _getId (entity: KeyValuePairs, metadata: EntityMetadata) {
         return entity[metadata.idPropertyName];
     }
 
-    private isIdField (field: EntityField, metadata: EntityMetadata) {
+    private _isIdField (field: EntityField, metadata: EntityMetadata) {
         return field.propertyName === metadata.idPropertyName;
     }
 
-    public count<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<number> {
-        throw new TypeError('PgPersister.count: Not implemented yet');
-        // return Promise.resolve(0);
+    public async count<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<number> {
+        const {tableName} = metadata;
+        const sql = `SELECT COUNT(*) as count FROM ${tableName}`;
+        const result = await this._query(sql, []);
+        if (!result) throw new TypeError('Could not get result for PgPersister.countByProperty');
+        LOG.debug(`count: result = `, result);
+        const rows = result.rows;
+        LOG.debug(`count: rows = `, rows);
+        if (!rows) throw new TypeError('Could not get result rows for PgPersister.countByProperty');
+        const row = first(rows);
+        LOG.debug(`count: row = `, row);
+        if (!row) throw new TypeError('Could not get result row for PgPersister.countByProperty');
+        const count = row.count;
+        LOG.debug(`count: count = `, count);
+        if (!count) throw new TypeError('Could not read count for PgPersister.countByProperty');
+        const parsedCount = parseInt(count, 10);
+        if (!isSafeInteger(parsedCount)) throw new TypeError(`Could not read count for PgPersister.countByProperty`);
+        return parsedCount;
     }
 
-    public countByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<number> {
-        throw new TypeError('PgPersister.countByProperty: Not implemented yet');
-        // return Promise.resolve(0);
+    public async countByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<number> {
+        const {tableName} = metadata;
+        const columnName = EntityUtils.getColumnName(property, metadata.fields);
+        const sql = `SELECT COUNT(*) as count FROM ${tableName} WHERE ${columnName} = $1`;
+        const result = await this._query(sql, [value]);
+        LOG.debug(`countByProperty: result = `, result);
+        if (!result) throw new TypeError('Could not get result for PgPersister.countByProperty');
+        const rows = result.rows;
+        LOG.debug(`count: rows = `, rows);
+        if (!rows) throw new TypeError('Could not get result rows for PgPersister.countByProperty');
+        const row = first(rows);
+        LOG.debug(`count: row = `, row);
+        if (!row) throw new TypeError('Could not get result row for PgPersister.countByProperty');
+        const count = row.count;
+        LOG.debug(`count: count = `, count);
+        if (!count) throw new TypeError('Could not read count for PgPersister.countByProperty');
+        const parsedCount = parseInt(count, 10);
+        if (!isSafeInteger(parsedCount)) throw new TypeError(`Could not read count for PgPersister.countByProperty`);
+        return parsedCount;
     }
 
-    public deleteAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<void> {
+    public async deleteAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<void> {
         const {tableName} = metadata;
         const sql = `DELETE FROM ${tableName}`;
-        try {
-            return this.pool.query(sql, []).then();
-        } catch (err) {
-            return Promise.reject(err);
-        }
+        await this._query(sql, []);
     }
 
-    public deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<void> {
-        throw new TypeError('PgPersister.deleteAllById: Not implemented yet');
-        // return Promise.resolve(undefined);
+    /**
+     *
+     * @param ids
+     * @param metadata
+     * @FIXME This could be improved as single query
+     */
+    public async deleteAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<void> {
+        await reduce(
+            ids,
+            async (prev: Promise<void>, id: ID) => {
+                await prev;
+                await this.deleteById(id, metadata);
+            },
+            Promise.resolve()
+        );
     }
 
-    public deleteAllByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<void> {
-        throw new TypeError('PgPersister.deleteAllByProperty: Not implemented yet');
-        // return Promise.resolve(undefined);
+    public async deleteAllByProperty<T extends Entity, ID extends EntityIdTypes> (
+        property: string,
+        value: any,
+        metadata: EntityMetadata
+    ): Promise<void> {
+        const {tableName} = metadata;
+        const columnName = EntityUtils.getColumnName(property, metadata.fields);
+        const select = `DELETE
+                        FROM ${tableName}
+                        WHERE ${columnName} = $1`;
+        await this._query(select, [ value ]);
     }
 
     public async deleteById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<void> {
         const {tableName} = metadata;
-        const idColumnName = this.getIdColumnName(metadata);
+        const idColumnName = this._getIdColumnName(metadata);
         const query = `DELETE
                         FROM ${tableName}
                         WHERE ${idColumnName} = $1`;
-        try {
-            await this.pool.query(query, [ id ]);
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        await this._query(query, [ id ]);
     }
 
-    public existsByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<boolean> {
-        throw new TypeError('PgPersister.existsByProperty: Not implemented yet');
-        // return Promise.resolve(false);
+    public async existsByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<boolean> {
+        const count = await this.countByProperty(property, value, metadata);
+        return count >= 1;
     }
 
     public async findByProperty<T extends Entity, ID extends EntityIdTypes> (
@@ -227,12 +273,21 @@ export class PgPersister implements Persister {
         const select = `SELECT *
                         FROM ${tableName}
                         WHERE ${columnName} = $1`;
-        try {
-            const result = await this.pool.query(select, [ value ]);
-            return this.toEntity<T, ID>(result.rows[0], metadata);
-        } catch (err) {
-            return await Promise.reject(err);
-        }
+        const result = await this._query(select, [ value ]);
+        if (!result) throw new TypeError(`Result was not defined: ${result}`);
+        const rows = result.rows;
+        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
+        const row = first(rows);
+        if (!row) return undefined;
+        return this._toEntity<T, ID>(row, metadata);
+    }
+
+    private async _query (
+        query: string,
+        values: any[]
+    ) : Promise<QueryResult<any>> {
+        LOG.debug(`Query "${query}" with values: `, values);
+        return await this._pool.query(query, values);
     }
 
 }
