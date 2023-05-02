@@ -1,3 +1,5 @@
+**Join our [Discord](https://discord.gg/UBTrHxA78f) to discuss about our software!**
+
 # @heusalagroup/fi.hg.repository
 
 This project is a Spring Data inspired annotation mechanism for entities and our `CrudRepository` implementation.
