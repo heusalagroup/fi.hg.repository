@@ -88,6 +88,9 @@ export class MemoryPersister implements Persister {
         this._metadataManager = new PersisterMetadataManagerImpl();
     }
 
+    public destroy (): void {
+    }
+
     public setupEntityMetadata (metadata: EntityMetadata) : void {
         this._metadataManager.setupEntityMetadata(metadata);
     }

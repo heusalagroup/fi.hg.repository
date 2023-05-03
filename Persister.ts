@@ -6,6 +6,8 @@ import { Entity, EntityIdTypes } from "./Entity";
 
 export interface Persister {
 
+    destroy () : void;
+
     setupEntityMetadata (metadata: EntityMetadata) : void;
 
     count<

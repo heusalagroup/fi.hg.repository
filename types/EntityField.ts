@@ -2,6 +2,7 @@
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
 import { EntityFieldType, parseEntityFieldType } from "./EntityFieldType";
+import { EntityMetadata } from "./EntityMetadata";
 
 export interface EntityField {
 
@@ -24,18 +25,25 @@ export interface EntityField {
      */
     nullable   : boolean;
 
+    /**
+     * The field metadata if this field is an entity
+     */
+    metadata   ?: EntityMetadata | undefined;
+
 }
 
 export function createEntityField (
     propertyName : string,
     columnName   : string,
     nullable    ?: boolean | undefined,
-    fieldType   ?: EntityFieldType | undefined
+    fieldType   ?: EntityFieldType | undefined,
+    metadata    ?: EntityMetadata | undefined,
 ) : EntityField {
     return {
         propertyName,
         columnName,
         nullable : nullable ?? true,
-        fieldType : parseEntityFieldType(fieldType) ?? EntityFieldType.UNKNOWN
+        fieldType : parseEntityFieldType(fieldType) ?? EntityFieldType.UNKNOWN,
+        ...(metadata ? {metadata} : {})
     };
 }

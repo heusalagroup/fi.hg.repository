@@ -149,15 +149,22 @@ export class PersisterMetadataManagerImpl implements PersisterMetadataManager {
                             metadata.manyToOneRelations,
                             (i: EntityRelationManyToOne) : EntityRelationManyToOne => {
                                 LOG.debug(`item = `, item, propertyName, remoteTableName);
-                                if (i.propertyName === item.propertyName && item.mappedTable !== remoteTableName) {
+
+                                let field : EntityField | undefined = find(metadata?.fields, (field: EntityField) => field.propertyName === propertyName);
+                                if (field) {
+                                    LOG.debug(`Updated metadata for property "${item.propertyName}" and id "${i.propertyName}" as `, remoteMetadata);
+                                    field.metadata = remoteMetadata;
+                                }
+
+                                if (i.propertyName === propertyName && item.mappedTable !== remoteTableName) {
                                     LOG.debug(`Property "${item.propertyName}" in "${tableName}" will be linked to table "${remoteTableName}"`);
                                     return createEntityRelationManyToOne(
                                         item.propertyName,
                                         remoteTableName
                                     );
-                                } else {
-                                    return item;
                                 }
+
+                                return item;
                             }
                         );
 

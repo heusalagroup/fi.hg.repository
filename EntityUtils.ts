@@ -7,14 +7,13 @@ import { RepositoryError } from "./types/RepositoryError";
 import { trim } from "../core/functions/trim";
 import { isString } from "../core/types/String";
 import { MySqlDateTime } from "./MySqlDateTime";
-import { isReadonlyJsonAny, parseReadonlyJsonObject, ReadonlyJsonObject } from "../core/Json";
+import { isReadonlyJsonAny, isReadonlyJsonObject, isReadonlyJsonObjectOrUndefined, parseJson, parseReadonlyJsonObject, ReadonlyJsonObject } from "../core/Json";
 import { isNumber } from "../core/types/Number";
 import { reduce } from "../core/functions/reduce";
 import { LogService } from "../core/LogService";
 import { CreateEntityLikeCallback } from "./types/EntityLike";
 import { isFunction } from "../core/types/Function";
 import { forEach } from "../core/functions/forEach";
-import { keys } from "../core/functions/keys";
 import { isUndefined } from "../core/types/undefined";
 import { isNull } from "../core/types/Null";
 import { isBoolean } from "../core/types/Boolean";
@@ -24,6 +23,10 @@ import { EntityField } from "./types/EntityField";
 import { KeyValuePairs } from "./types/KeyValuePairs";
 import { EntityRelationOneToMany } from "./types/EntityRelationOneToMany";
 import { EntityRelationManyToOne } from "./types/EntityRelationManyToOne";
+import { EntityFieldType } from "./types/EntityFieldType";
+import { every } from "../core/functions/every";
+import { PersisterMetadataManager } from "./PersisterMetadataManager";
+import { has } from "../core/functions/has";
 
 const LOG = LogService.createLogger('EntityUtils');
 
@@ -130,15 +133,18 @@ export class EntityUtils {
         if (!isFunction(createEntity)) {
             throw new TypeError(`The entity metadata did not have ability to create new entities. Did you forget '@table()' annotation?`);
         }
-        const json = entity.toJSON();
-        const clonedEntity = createEntity( json );
+        const clonedEntity = createEntity();
 
-        // We need to copy all properties because entity constructor might not
+        // We need to copy all normal fields because entity constructor might not
         // initialize everything same way
         forEach(
-            keys(json),
-            (key: string) => {
-                (clonedEntity as any)[key] = EntityUtils.cloneValue((entity as any)[key]);
+            metadata?.fields,
+            (field: EntityField) => {
+                const propertyName = field.propertyName;
+                // Note: Joined entities will be copied below at manyToOneRelations
+                if (propertyName && field.fieldType !== EntityFieldType.JOINED_ENTITY) {
+                    (clonedEntity as any)[propertyName] = EntityUtils.cloneValue((entity as any)[propertyName]);
+                }
             }
         );
 
@@ -193,15 +199,101 @@ export class EntityUtils {
         throw new TypeError(`Could not clone value: ${value}`);
     }
 
+    /**
+     * This method goes through all fields in the metadata and copies values
+     * from columns to properties.
+     *
+     * This property does not handle joined entities and will ignore those.
+     *
+     * @param dbEntity The data in format where the column name points to the
+     *                 property value, e.g. as it is saved in the MySQL row.
+     * @param parentMetadata
+     * @param metadataManager
+     */
     public static toEntity<T extends Entity, ID extends EntityIdTypes> (
-        entity: KeyValuePairs,
-        metadata: EntityMetadata
+        dbEntity: KeyValuePairs,
+        parentMetadata: EntityMetadata,
+        metadataManager: PersisterMetadataManager
     ): T {
-        return (
-            metadata.fields
-                .map((fld) => ({[fld.propertyName]: entity[fld.columnName]}))
-                .reduce((prev, curr) => Object.assign(prev, curr)) as T
+        const { createEntity, fields, manyToOneRelations, oneToManyRelations } = parentMetadata;
+        if (!createEntity) throw new TypeError(`Could not create entity: No create function`);
+        const ret : T = createEntity() as unknown as T;
+
+        forEach(
+            fields,
+            (field: EntityField) : void => {
+                const {fieldType, propertyName, columnName, metadata} = field;
+
+                if (fieldType === EntityFieldType.JOINED_ENTITY) {
+                    // This is handled below at @ManyToOne
+
+                    // if (!metadata) {
+                    //     throw new TypeError(`The child entity did not have metadata defined: Cannot build entity`);
+                    // }
+                    // const dbValue = dbEntity[columnName];
+                    // if ( isReadonlyJsonObject(dbValue) ) {
+                    //
+                    //     (ret as any)[propertyName] = this.toEntity(dbValue, metadata);
+                    //
+                    // } else if ( isString(dbValue) || isNumber(dbValue) ) {
+                    //
+                    //     const idPropertyName = metadata.idPropertyName;
+                    //     const createChildEntity = metadata.createEntity;
+                    //     if ( !(createChildEntity && idPropertyName) ) {
+                    //         throw new TypeError(`The child entity metadata did not have enough information to build up an entity`);
+                    //     }
+                    //     const childEntity = createChildEntity();
+                    //     (childEntity as any)[idPropertyName] = dbValue;
+                    //     (ret as any)[propertyName] = childEntity;
+                    //
+                    // } else if (dbValue !== undefined) {
+                    //     LOG.debug(`The child entity value was incorrect: dbValue = `, dbValue);
+                    //     throw new TypeError(`The child entity value was incorrect: ${dbValue}`);
+                    // }
+                } else {
+                    (ret as any)[propertyName] = dbEntity[columnName];
+                }
+            }
         );
+
+        forEach(
+            oneToManyRelations,
+            (relation: EntityRelationOneToMany) : void => {
+                const {propertyName} = relation;
+                LOG.debug(`oneToMany: propertyName=`, propertyName);
+                if (!propertyName) return;
+                const mappedTable = relation?.mappedTable;
+                LOG.debug(`oneToMany: mappedTable=`, mappedTable);
+                if (!mappedTable) throw new TypeError(`The property "${propertyName}" did not have table configured`);
+                const mappedMetadata = metadataManager.getMetadataByTable(mappedTable);
+                LOG.debug(`oneToMany: mappedMetadata=`, mappedMetadata);
+                if (!mappedMetadata) throw new TypeError(`Could not find metadata for property "${propertyName}" from table "${mappedTable}"`);
+
+                let dbValue : any = has(dbEntity, propertyName) ? dbEntity[propertyName] : undefined;
+                if (dbValue !== undefined) {
+                    if (isString(dbValue)) {
+                        dbValue = parseJson(dbValue);
+                    }
+                    if (!isArray(dbValue)) {
+                        throw new TypeError(`Expected the dbValue to be an array: ${dbValue}`);
+                    }
+                    (ret as any)[propertyName] = dbValue.map(
+                        (value: any) => {
+                            LOG.debug(`oneToMany: db item value=`, value);
+                            return this.toEntity(value, mappedMetadata, metadataManager);
+                        }
+                    );
+                }
+
+            }
+        );
+
+        if (!isEntity(ret)) {
+            LOG.debug(`Could not create entity correctly: `, ret);
+            throw new TypeError(`Could not create entity correctly: ${ret}`);
+        }
+
+        return ret;
     }
 
     public static getIdColumnName (metadata: EntityMetadata) : string {
@@ -284,6 +376,22 @@ export class EntityUtils {
     public static parseIsoStringAsMySQLDateString (value : any) : string | undefined {
         let parsed = MySqlDateTime.parse(value);
         return parsed ? parsed.toString() : undefined;
+    }
+
+    /**
+     * This function validates that each entity in the list is has the same
+     * metadata, e.g. are of the same type of entities.
+     *
+     * @param list
+     * @param metadata
+     */
+    public static areEntitiesSameType <T extends Entity> (
+        list      : readonly T[],
+        metadata ?: EntityMetadata
+    ) : boolean {
+        if ( list.length < 1 ) throw new TypeError(`Cannot check empty array of entities for their type`);
+        if ( !metadata ) metadata = list[0].getMetadata();
+        return every(list, (entity: T) : boolean => entity.getMetadata() === metadata);
     }
 
 }

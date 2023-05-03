@@ -46,6 +46,8 @@ export class PgPersister implements Persister {
         );
     }
 
+    public destroy () {}
+
     public setupEntityMetadata (metadata: EntityMetadata) : void {
 
     }

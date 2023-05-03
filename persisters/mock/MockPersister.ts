@@ -12,6 +12,8 @@ import { isArray } from "../../../core/types/Array";
  */
 export class MockPersister implements Persister {
 
+    public destroy () {}
+
     public async setupEntityMetadata (metadata: EntityMetadata) : Promise<void> {
     }
 
