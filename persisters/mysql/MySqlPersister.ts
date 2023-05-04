@@ -9,7 +9,7 @@ import { Persister } from "../../Persister";
 import { RepositoryError } from "../../types/RepositoryError";
 import { RepositoryEntityError } from "../../types/RepositoryEntityError";
 import { Entity, EntityIdTypes, isEntity } from "../../Entity";
-import { COUNT_ALL_QUERY_STRING, COUNT_BY_COLUMN_QUERY_STRING, DELETE_ALL_BY_ID_QUERY_STRING, DELETE_ALL_QUERY_STRING, DELETE_BY_COLUMN_QUERY_STRING, DELETE_BY_ID_QUERY_STRING, EXISTS_BY_COLUMN_QUERY_STRING, INSERT_QUERY_STRING, SELECT_BY_COLUMN_LIST_QUERY_STRING, SELECT_BY_COLUMN_QUERY_STRING, UPDATE_QUERY_STRING } from "./MySqlConstants";
+import { DELETE_ALL_BY_ID_QUERY_STRING, DELETE_ALL_QUERY_STRING, DELETE_BY_COLUMN_QUERY_STRING, DELETE_BY_ID_QUERY_STRING, EXISTS_BY_COLUMN_QUERY_STRING, INSERT_QUERY_STRING, SELECT_BY_COLUMN_LIST_QUERY_STRING, SELECT_BY_COLUMN_QUERY_STRING, UPDATE_QUERY_STRING } from "./MySqlConstants";
 import { EntityUtils } from "../../EntityUtils";
 import { MySqlCharset } from "./types/MySqlCharset";
 import { isArray } from "../../../core/types/Array";
@@ -21,8 +21,8 @@ import { PersisterMetadataManagerImpl } from "../../PersisterMetadataManagerImpl
 import { filter } from "../../../core/functions/filter";
 import { EntityFieldType } from "../../types/EntityFieldType";
 import { has } from "../../../core/functions/has";
-import { EntityRelationOneToMany } from "../../types/EntityRelationOneToMany";
-import { forEach } from "../../../core/functions/forEach";
+import { MySqlEntitySelectQueryBuilder } from "./MySqlEntitySelectQueryBuilder";
+import { MySqlAndFormulaBuilder } from "./MySqlAndFormulaBuilder";
 
 export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 
@@ -126,7 +126,10 @@ export class MySqlPersister implements Persister {
         const tableName : string = metadata.tableName;
         LOG.debug(`tableName = `, tableName);
 
-        const fields : readonly EntityField[] = filter(metadata.fields, (fld: EntityField) => !EntityUtils.isIdField(fld, metadata));
+        const fields : readonly EntityField[] = filter(
+            metadata.fields,
+            (fld: EntityField) : boolean => !EntityUtils.isIdField(fld, metadata) && fld?.fieldType !== EntityFieldType.JOINED_ENTITY
+        );
         LOG.debug(`fields = `, fields);
 
         const colNames : readonly string[] = map(fields, (col: EntityField) => col.columnName);
@@ -139,26 +142,32 @@ export class MySqlPersister implements Persister {
                 (col: EntityField) : any => {
                     const { propertyName , columnName, fieldType } = col;
                     const value = propertyName && has(item, propertyName) ? (item as any)[propertyName] : undefined;
-                    if ( fieldType === EntityFieldType.JOINED_ENTITY ) {
-                        if (!isEntity(value)) {
-                            LOG.debug(`Property "${propertyName}" not an Entity: `, value);
-                            throw new TypeError(`The property "${propertyName}" was not Entity: ${value}`);
-                        }
-                        const childMetadata = value.getMetadata();
-                        const childPropertyName = childMetadata?.fields ? EntityUtils.getPropertyName(columnName, childMetadata?.fields) : undefined;
-                        if (!childPropertyName) {
-                            throw new TypeError(`Could not find property for entity "${propertyName}" column "${columnName}"`);
-                        }
-                        return has(value, childPropertyName) ? (value as any)[childPropertyName] : undefined;
-                    }
+                    // if ( fieldType === EntityFieldType.JOINED_ENTITY ) {
+                    //     // if (!isEntity(value)) {
+                    //     //     LOG.debug(`Property "${propertyName}" not an Entity: `, value);
+                    //     //     throw new TypeError(`The property "${propertyName}" was not Entity: ${value}`);
+                    //     // }
+                    //     // const childMetadata = value.getMetadata();
+                    //     // const childPropertyName = childMetadata?.fields ? EntityUtils.getPropertyName(columnName, childMetadata?.fields) : undefined;
+                    //     // if (!childPropertyName) {
+                    //     //     throw new TypeError(`Could not find property for entity "${propertyName}" column "${columnName}"`);
+                    //     // }
+                    //     // return has(value, childPropertyName) ? (value as any)[childPropertyName] : undefined;
+                    // }
                     return value;
                 }
             )
         );
         LOG.debug(`insertValues = `, insertValues);
 
-        const queryValues : [string, readonly string[], any[][]] = [`${this._tablePrefix}${tableName}`, colNames, insertValues];
+        const queryValues : [string, readonly string[], any[][]] = [
+            `${this._tablePrefix}${tableName}`,
+            colNames,
+            insertValues
+        ];
         LOG.debug(`queryValues = `, queryValues);
+
+        // INSERT INTO ?? (??) VALUES ?
 
         const [results] = await this._query(INSERT_QUERY_STRING, queryValues);
         // LOG.debug(`results = `, results);
@@ -308,11 +317,27 @@ export class MySqlPersister implements Persister {
     ): Promise<T | undefined> {
         LOG.debug(`findById: id = `, id);
         LOG.debug(`findById: metadata = `, metadata);
-        const {tableName} = metadata;
-        LOG.debug(`findById: tableName = `, tableName);
-        const idColumnName = EntityUtils.getIdColumnName(metadata);
-        LOG.debug(`findById: idColumnName = `, idColumnName);
-        const [results] = await this._query(SELECT_BY_COLUMN_QUERY_STRING, [`${this._tablePrefix}${tableName}`, idColumnName, id]);
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findAll: tableName = `, tableName, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+
+        const where = new MySqlAndFormulaBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), mainIdColumnName, id);
+        builder.setWhereFromQueryBuilder(where);
+
+        const [queryString, queryValues] = builder.build();
+
+        // SELECT * FROM ?? WHERE ?? = ?
+
+        const [results] = await this._query(queryString, queryValues);
         // LOG.debug(`findById: results = `, results);
         const entity = results.length >= 1 && results[0] ? EntityUtils.toEntity<T, ID>(results[0], metadata, this._metadataManager) : undefined;
         if ( entity !== undefined && !isEntity(entity) ) {
@@ -332,11 +357,26 @@ export class MySqlPersister implements Persister {
         LOG.debug(`findByProperty: property = `, property);
         LOG.debug(`findByProperty: value = `, value);
         LOG.debug(`findByProperty: metadata = `, metadata);
-        const {tableName} = metadata;
-        LOG.debug(`findByProperty: tableName = `, tableName);
-        const columnName = EntityUtils.getColumnName(property, metadata.fields);
-        LOG.debug(`findByProperty: columnName = `, columnName);
-        const [results] = await this._query(SELECT_BY_COLUMN_QUERY_STRING, [`${this._tablePrefix}${tableName}`, columnName, value]);
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findByProperty: tableName = `, tableName, fields);
+        const columnName = EntityUtils.getColumnName(property, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+
+        const where = new MySqlAndFormulaBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), columnName, value);
+        builder.setWhereFromQueryBuilder(where);
+
+        const [queryString, queryValues] = builder.build();
+        // SELECT * FROM ?? WHERE ?? = ?
+        const [results] = await this._query(queryString, queryValues);
         // LOG.debug(`findByProperty: results = `, results);
         return results.length >= 1 && results[0] ? EntityUtils.toEntity<T, ID>(results[0], metadata, this._metadataManager) : undefined;
     }
@@ -347,110 +387,18 @@ export class MySqlPersister implements Persister {
         metadata: EntityMetadata
     ): Promise<T[]> {
         LOG.debug(`findAll: metadata = `, metadata);
+
         const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
-        LOG.debug(`findAll: tableName = `, tableName);
-        LOG.debug(`findAll: fields = `, fields);
-
+        LOG.debug(`findAll: tableName = `, tableName, fields);
         const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
-
-        // @OneToMany will do a query like this:
-        //
-        // SELECT
-        //   carts.*,
-        //   JSON_ARRAYAGG(JSON_OBJECT("cart_item_id", cart_items.cart_item_id, "cart_id", cart_items.cart_id, "cart_item_name", cart_items.cart_item_name)) AS cartItems
-        // FROM carts
-        // LEFT JOIN cart_items ON carts.cart_id = cart_items.cart_id
-        // GROUP BY carts.cart_id;
-        //
-        // SELECT
-        //   ??.*,
-        //   JSON_ARRAYAGG(JSON_OBJECT(?, ??.??, ?, ??.??, ?, ??.??)) AS ??
-        // FROM ??
-        // LEFT JOIN ?? ON ??.?? = ??.??
-        // GROUP BY ??.??;
-
-
-        // @ManyToOne will do a query like this:
-        //
-        // SELECT
-        //   cart_items.*,
-        //   JSON_OBJECT("cart_id", carts.cart_id, "cart_name", carts.cart_name) AS cart
-        // FROM cart_items
-        // LEFT JOIN carts ON carts.cart_id = cart_items.cart_id
-        // GROUP BY cart_items.cart_item_id;
-        //
-        // SELECT
-        //   ??.*,
-        //   JSON_OBJECT(?, ??.??, ?, ??.??) AS ??
-        // FROM ??
-        // LEFT JOIN ?? ON ??.?? = ??.??
-        // GROUP BY ??.??;
-
-        const mainTableName : string = `${this._tablePrefix}${tableName}`;
-
-        let fieldQueries : string[] = [
-            '??.*'
-        ];
-        let fieldValues : string[] = [
-            mainTableName
-        ];
-
-        let leftJoinQueries : string[] = [];
-        let leftJoinValues : string[] = [];
-
-        forEach(
-            oneToManyRelations,
-            (relation: EntityRelationOneToMany) : void => {
-                const { propertyName, mappedBy } = relation;
-                const mappedTable = relation?.mappedTable;
-                if (!mappedTable) throw new TypeError(`The relation "${propertyName}" did not have table defined`);
-
-                const mappedMetadata = this._metadataManager.getMetadataByTable(mappedTable);
-                if (!mappedMetadata) throw new TypeError(`Could not find metadata for property "${propertyName}"`);
-
-                const mappedFields = mappedMetadata.fields;
-
-                let keyValueQueries : string[] = [];
-                let keyValueValues : string[] = [];
-
-                mappedFields.forEach(
-                    (field: EntityField) => {
-                        const {columnName, propertyName, fieldType} = field;
-                        if (fieldType !== EntityFieldType.JOINED_ENTITY) {
-
-                            keyValueQueries.push(`?, ??.??`);
-                            keyValueValues = [
-                                ...keyValueValues,
-                                columnName,
-                                mappedTable,
-                                columnName
-                            ];
-                        }
-                    }
-                );
-
-                fieldQueries.push(`JSON_ARRAYAGG(JSON_OBJECT(${keyValueQueries.join(', ')})) AS ??`);
-                fieldValues = [
-                    ...fieldValues,
-                    ...keyValueValues,
-                    propertyName
-                ];
-
-                leftJoinQueries.push(`LEFT JOIN ?? ON ??.?? = ??.??`);
-                leftJoinValues = [
-                    ...leftJoinValues,
-                    mappedTable,
-                    mainTableName, mainIdColumnName,
-                    mappedTable, mainIdColumnName
-                ];
-
-            }
-        );
-
-
-        const queryValues = [ ...fieldValues, mainTableName, ...leftJoinValues, mainTableName, mainIdColumnName ];
-
-        const queryString = `SELECT ${fieldQueries.join(', ')} FROM ?? ${leftJoinQueries.join(' ')} GROUP BY ??.??`;
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const [queryString, queryValues] = builder.build();
 
         const [results] = await this._query(queryString, queryValues);
         LOG.debug(`findAll: results = `, results);
@@ -465,13 +413,29 @@ export class MySqlPersister implements Persister {
         LOG.debug(`findAllById: ids = `, ids);
         if (ids.length <= 0) throw new TypeError('At least one ID must be selected. Array was empty.');
         LOG.debug(`findAllById: metadata = `, metadata);
-        const {tableName} = metadata;
-        LOG.debug(`findAllById: tableName = `, tableName);
-        const idColumnName: string = EntityUtils.getIdColumnName(metadata);
-        LOG.debug(`findAllById: idColumnName = `, idColumnName);
-        const queryValues = [`${this._tablePrefix}${tableName}`, idColumnName, ids];
-        LOG.debug(`findAllById: queryValues = `, queryValues);
-        const [results] = await this._query(SELECT_BY_COLUMN_LIST_QUERY_STRING, queryValues);
+
+        // const queryValues = [`${this._tablePrefix}${tableName}`, idColumnName, ids];
+        // LOG.debug(`findAllById: queryValues = `, queryValues);
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findAll: tableName = `, tableName, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new MySqlAndFormulaBuilder();
+        where.setColumnInList(builder.getCompleteTableName(tableName), mainIdColumnName, ids);
+        builder.setWhereFromQueryBuilder(where);
+
+        const [queryString, queryValues] = builder.build();
+
+        // SELECT * FROM ?? WHERE ?? IN (?)
+
+        const [results] = await this._query(queryString, queryValues);
         // LOG.debug(`findAllById: results = `, results);
         return results.map((row: any) => EntityUtils.toEntity<T, ID>(row, metadata, this._metadataManager));
     }
@@ -487,11 +451,24 @@ export class MySqlPersister implements Persister {
         LOG.debug(`findAllByProperty: property = `, property);
         LOG.debug(`findAllByProperty: value = `, value);
         LOG.debug(`findAllByProperty: metadata = `, metadata);
-        const {tableName} = metadata;
-        LOG.debug(`findAllByProperty: tableName = `, tableName);
-        const columnName = EntityUtils.getColumnName(property, metadata.fields);
-        LOG.debug(`findAllByProperty: columnName = `, columnName);
-        const [results] = await this._query(SELECT_BY_COLUMN_QUERY_STRING, [`${this._tablePrefix}${tableName}`, columnName, value]);
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findAllByProperty: tableName = `, tableName, fields);
+        const columnName = EntityUtils.getColumnName(property, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new MySqlAndFormulaBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), columnName, value);
+        builder.setWhereFromQueryBuilder(where);
+        const [queryString, queryValues] = builder.build();
+        // SELECT * FROM ?? WHERE ?? = ?
+        const [results] = await this._query(queryString, queryValues);
         // LOG.debug(`findAllByProperty: results = `, results);
         return results.map((row: any) => EntityUtils.toEntity<T, ID>(row, metadata, this._metadataManager));
     }
@@ -501,9 +478,27 @@ export class MySqlPersister implements Persister {
         metadata: EntityMetadata
     ): Promise<number> {
         LOG.debug(`count: metadata = `, metadata);
-        const {tableName} = metadata;
-        LOG.debug(`count: tableName = `, tableName);
-        const [results] = await this._query(COUNT_ALL_QUERY_STRING, ['count', `${this._tablePrefix}${tableName}`]);
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`count: tableName = `, tableName, fields);
+        // const columnName = EntityUtils.getColumnName(property, fields);
+        // const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.includeFormulaByString('COUNT(*)', 'count');
+        // builder.setGroupByColumn(mainIdColumnName);
+        // builder.includeAllColumnsFromTable(mainTableName);
+        // builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        // builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        // const where = new MySqlAndFormulaBuilder();
+        // where.setColumnEquals(columnName, value);
+        // builder.setWhereFromQueryBuilder(where);
+        const [queryString, queryValues] = builder.build();
+
+        // SELECT COUNT(*) AS ?? FROM ??
+
+        const [results] = await this._query(queryString, ['count', `${this._tablePrefix}${tableName}`]);
         // LOG.debug(`count: results = `, results);
         if (results.length !== 1) {
             throw new RepositoryError(RepositoryError.Code.COUNT_INCORRECT_ROW_AMOUNT, `count: Incorrect amount of rows in the response`);
@@ -520,13 +515,25 @@ export class MySqlPersister implements Persister {
         LOG.debug(`countByProperty: property = `, property);
         LOG.debug(`countByProperty: value = `, value);
         LOG.debug(`countByProperty: metadata = `, metadata);
-        const {tableName, fields} = metadata;
-        LOG.debug(`countByProperty: tableName = `, tableName);
-        const columnName : string = EntityUtils.getColumnName(property, fields);
-        const [results] = await this._query(
-            COUNT_BY_COLUMN_QUERY_STRING,
-            ['count', `${this._tablePrefix}${tableName}`, columnName, value]
-        );
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`count: tableName = `, tableName, fields);
+        const columnName = EntityUtils.getColumnName(property, fields);
+        // const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.includeFormulaByString('COUNT(*)', 'count');
+        // builder.setGroupByColumn(mainIdColumnName);
+        // builder.includeAllColumnsFromTable(mainTableName);
+        // builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        // builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new MySqlAndFormulaBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), columnName, value);
+        builder.setWhereFromQueryBuilder(where);
+        const [queryString, queryValues] = builder.build();
+        // SELECT COUNT(*) AS ?? FROM ?? WHERE ?? = ?
+        const [results] = await this._query(queryString, queryValues);
         // LOG.debug(`countByProperty: results = `, results);
         if (results.length !== 1) {
             throw new RepositoryError(RepositoryError.Code.COUNT_INCORRECT_ROW_AMOUNT, `countByProperty: Incorrect amount of rows in the response`);
@@ -545,14 +552,27 @@ export class MySqlPersister implements Persister {
         LOG.debug(`existsByProperty: property = `, property);
         LOG.debug(`existsByProperty: value = `, value);
         LOG.debug(`existsByProperty: metadata = `, metadata);
-        const {tableName} = metadata;
-        LOG.debug(`existsByProperty: tableName = `, tableName);
-        const columnName = EntityUtils.getColumnName(property, metadata.fields);
-        LOG.debug(`existsByProperty: columnName = `, columnName);
-        const [results] = await this._query(
-            EXISTS_BY_COLUMN_QUERY_STRING,
-            ['exists', `${this._tablePrefix}${tableName}`, columnName, value]
-        );
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`count: tableName = `, tableName, fields);
+        const columnName = EntityUtils.getColumnName(property, fields);
+        // const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new MySqlEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.includeFormulaByString('COUNT(*) >= 1', 'exists');
+        // builder.setGroupByColumn(mainIdColumnName);
+        // builder.includeAllColumnsFromTable(mainTableName);
+        // builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        // builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new MySqlAndFormulaBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), columnName, value);
+        builder.setWhereFromQueryBuilder(where);
+        const [queryString, queryValues] = builder.build();
+
+        // SELECT COUNT(*) >= 1 AS ?? FROM ?? WHERE ?? = ?
+
+        const [results] = await this._query(queryString, queryValues);
         // LOG.debug(`existsByProperty: results = `, results);
         if (results.length !== 1) {
             throw new RepositoryError(RepositoryError.Code.EXISTS_INCORRECT_ROW_AMOUNT, `existsById: Incorrect amount of rows in the response`);
@@ -567,26 +587,30 @@ export class MySqlPersister implements Persister {
         LOG.debug(`query = '${query}'`, values);
         const pool = this._pool;
         if (!pool) throw new TypeError(`This persister has been destroyed`);
-        return await new Promise((resolve, reject) => {
-            try {
-                pool.query(
-                    {
-                        sql: query,
-                        values: values,
-                        timeout: this._queryTimeout
-                    },
-                    (error: MysqlError | null, results ?: any, fields?: FieldInfo[]) => {
-                        if (error) {
-                            reject(error);
-                        } else {
-                            resolve([results, fields]);
+        try {
+            return await new Promise((resolve, reject) => {
+                try {
+                    pool.query(
+                        {
+                            sql: query,
+                            values: values,
+                            timeout: this._queryTimeout
+                        },
+                        (error: MysqlError | null, results ?: any, fields?: FieldInfo[]) => {
+                            if (error) {
+                                reject(error);
+                            } else {
+                                resolve([results, fields]);
+                            }
                         }
-                    }
-                );
-            } catch (err) {
-                reject(err);
-            }
-        });
+                    );
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        } catch (err) {
+            throw TypeError(`Query failed: "${query}": ${err}`);
+        }
     }
 
 }

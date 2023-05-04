@@ -7,7 +7,7 @@ import { RepositoryError } from "./types/RepositoryError";
 import { trim } from "../core/functions/trim";
 import { isString } from "../core/types/String";
 import { MySqlDateTime } from "./MySqlDateTime";
-import { isReadonlyJsonAny, isReadonlyJsonObject, isReadonlyJsonObjectOrUndefined, parseJson, parseReadonlyJsonObject, ReadonlyJsonObject } from "../core/Json";
+import { isReadonlyJsonAny, parseJson, parseReadonlyJsonObject, ReadonlyJsonObject } from "../core/Json";
 import { isNumber } from "../core/types/Number";
 import { reduce } from "../core/functions/reduce";
 import { LogService } from "../core/LogService";
@@ -256,18 +256,23 @@ export class EntityUtils {
             }
         );
 
+        // OneToMany relations
         forEach(
             oneToManyRelations,
             (relation: EntityRelationOneToMany) : void => {
                 const {propertyName} = relation;
-                LOG.debug(`oneToMany: propertyName=`, propertyName);
+                // LOG.debug(`oneToMany: propertyName=`, propertyName);
                 if (!propertyName) return;
                 const mappedTable = relation?.mappedTable;
-                LOG.debug(`oneToMany: mappedTable=`, mappedTable);
-                if (!mappedTable) throw new TypeError(`The property "${propertyName}" did not have table configured`);
+                if (!mappedTable) {
+                    LOG.debug(`oneToMany: ${propertyName}: mappedTable=`, mappedTable);
+                    throw new TypeError(`The property "${propertyName}" did not have table configured`);
+                }
                 const mappedMetadata = metadataManager.getMetadataByTable(mappedTable);
-                LOG.debug(`oneToMany: mappedMetadata=`, mappedMetadata);
-                if (!mappedMetadata) throw new TypeError(`Could not find metadata for property "${propertyName}" from table "${mappedTable}"`);
+                if (!mappedMetadata) {
+                    LOG.debug(`oneToMany: ${propertyName}: mappedMetadata=`, mappedMetadata);
+                    throw new TypeError(`Could not find metadata for property "${propertyName}" from table "${mappedTable}"`);
+                }
 
                 let dbValue : any = has(dbEntity, propertyName) ? dbEntity[propertyName] : undefined;
                 if (dbValue !== undefined) {
@@ -279,10 +284,39 @@ export class EntityUtils {
                     }
                     (ret as any)[propertyName] = dbValue.map(
                         (value: any) => {
-                            LOG.debug(`oneToMany: db item value=`, value);
                             return this.toEntity(value, mappedMetadata, metadataManager);
                         }
                     );
+                }
+
+            }
+        );
+
+        // ManyToOne relations
+        forEach(
+            manyToOneRelations,
+            (relation: EntityRelationManyToOne) : void => {
+                const {propertyName} = relation;
+                // LOG.debug(`manyToOne: propertyName=`, propertyName);
+                if (!propertyName) return;
+                const mappedTable = relation?.mappedTable;
+                if (!mappedTable) {
+                    LOG.debug(`manyToOne: ${propertyName}: mappedTable=`, mappedTable);
+                    throw new TypeError(`The property "${propertyName}" did not have table configured`);
+                }
+                const mappedMetadata = metadataManager.getMetadataByTable(mappedTable);
+                if (!mappedMetadata) {
+                    LOG.debug(`manyToOne: ${propertyName}: mappedMetadata=`, mappedMetadata);
+                    throw new TypeError(`Could not find metadata for property "${propertyName}" from table "${mappedTable}"`);
+                }
+
+                let dbValue : any = has(dbEntity, propertyName) ? dbEntity[propertyName] : undefined;
+                if (dbValue !== undefined) {
+                    if (isString(dbValue)) {
+                        dbValue = parseJson(dbValue);
+                    }
+                    // LOG.debug(`manyToOne: db value=`, dbValue);
+                    (ret as any)[propertyName] = this.toEntity(dbValue, mappedMetadata, metadataManager);
                 }
 
             }
@@ -392,6 +426,38 @@ export class EntityUtils {
         if ( list.length < 1 ) throw new TypeError(`Cannot check empty array of entities for their type`);
         if ( !metadata ) metadata = list[0].getMetadata();
         return every(list, (entity: T) : boolean => entity.getMetadata() === metadata);
+    }
+
+    /**
+     * Removes relations to other entities from an entity, e.g. simplifies it.
+     *
+     * @param item
+     * @param metadata
+     * @returns Cloned and simplified new entity
+     */
+    public static removeEntityRelations<T extends Entity> (
+        item: T,
+        metadata: EntityMetadata
+    ) : T {
+        const clonedEntity = item.clone() as T;
+
+        forEach(
+            metadata.manyToOneRelations,
+            (relation) => {
+                const {propertyName} = relation;
+                (clonedEntity as any)[propertyName] = undefined;
+            }
+        );
+
+        forEach(
+            metadata.oneToManyRelations,
+            (relation) => {
+                const {propertyName} = relation;
+                (clonedEntity as any)[propertyName] = [];
+            }
+        );
+
+        return clonedEntity;
     }
 
 }

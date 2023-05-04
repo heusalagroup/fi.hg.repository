@@ -16,6 +16,7 @@ describe('Repository integrations', () => {
         setCrudRepositoryLogLevel(LogLevel.NONE);
         CrudRepositoryImpl.setLogLevel(LogLevel.NONE);
         PersisterMetadataManagerImpl.setLogLevel(LogLevel.NONE);
+        MemoryPersister.setLogLevel(LogLevel.NONE);
     });
 
     describe('Memory-based', () => {

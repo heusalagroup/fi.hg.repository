@@ -4,8 +4,13 @@ import { MemoryPersister } from "./MemoryPersister";
 import { createEntityMetadata, EntityMetadata } from "../../types/EntityMetadata";
 import { Column, Entity, Id, Table } from "../../Entity";
 import { createEntityField } from "../../types/EntityField";
+import { LogLevel } from "../../../core/types/LogLevel";
 
 describe('MemoryPersister', () => {
+
+    beforeAll(() => {
+        MemoryPersister.setLogLevel(LogLevel.NONE);
+    });
 
     @Table('foos')
     class FooEntity extends Entity {

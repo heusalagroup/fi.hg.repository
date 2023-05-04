@@ -174,20 +174,30 @@ export class MemoryPersister implements Persister {
     ): Promise<T[]> {
         const tableName = metadata.tableName;
         if(!has(this._data, tableName)) return [];
-        return this._populateRelationsToList(this._prepareItemList(this._data[tableName].items, metadata), metadata);
+
+        const items : T[] = this._prepareItemList(this._data[tableName].items, metadata, true);
+        LOG.debug(`findAll: returns: items 1: `, items);
+
+        const ret : T[] = this._populateRelationsToList(items, metadata);
+        LOG.debug(`findAll: returns: items 2: `, ret);
+        return ret;
     }
 
     public async findAllById<T extends Entity, ID extends EntityIdTypes> (
         ids: readonly ID[],
         metadata: EntityMetadata
     ): Promise<T[]> {
-        return this._populateRelationsToList(this._prepareItemList(
-            this._filterItems(
-                (item: MemoryItem) : boolean => ids.includes( item.id as unknown as ID ),
-                metadata.tableName
+        return this._populateRelationsToList(
+            this._prepareItemList(
+                this._filterItems(
+                    (item: MemoryItem) : boolean => ids.includes( item.id as unknown as ID ),
+                    metadata.tableName
+                ),
+                metadata,
+                true
             ),
             metadata
-        ), metadata);
+        );
     }
 
     public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (
@@ -195,13 +205,17 @@ export class MemoryPersister implements Persister {
         value: any,
         metadata: EntityMetadata
     ): Promise<T[]> {
-        return this._populateRelationsToList(this._prepareItemList(
-            this._filterItems(
-                (item: MemoryItem) : boolean => has(item.value, property) ? (item.value as any)[property] === value : false,
-                metadata.tableName
+        return this._populateRelationsToList(
+            this._prepareItemList(
+                this._filterItems(
+                    (item: MemoryItem) : boolean => has(item.value, property) ? (item.value as any)[property] === value : false,
+                    metadata.tableName
+                ),
+                metadata,
+                true
             ),
             metadata
-        ), metadata);
+        );
     }
 
     /**
@@ -219,7 +233,7 @@ export class MemoryPersister implements Persister {
             metadata.tableName
         );
         if (!item) return undefined;
-        return this._populateRelations(this._prepareItem<T>(item, metadata), metadata);
+        return this._populateRelations(this._prepareItem<T>(item, metadata, true), metadata);
     }
 
     public async findByProperty<T extends Entity, ID extends EntityIdTypes> (
@@ -232,7 +246,7 @@ export class MemoryPersister implements Persister {
             metadata.tableName
         );
         if (!item) return undefined;
-        return this._populateRelations(this._prepareItem<T>(item, metadata), metadata);
+        return this._populateRelations(this._prepareItem<T>(item, metadata, true), metadata);
     }
 
     public async insert<T extends Entity, ID extends EntityIdTypes> (
@@ -282,7 +296,7 @@ export class MemoryPersister implements Persister {
         // FIXME: We should return more than one if there were more than one
         const firstItem = first(newItems);
         if (!firstItem) throw new TypeError(`Could not add items`);
-        return this._populateRelations( this._prepareItem<T>(firstItem, metadata), metadata);
+        return this._populateRelations( this._prepareItem<T>(firstItem, metadata, true), metadata);
     }
 
     public async update<T extends Entity, ID extends EntityIdTypes> (
@@ -349,13 +363,15 @@ export class MemoryPersister implements Persister {
      *
      * @param items
      * @param metadata
+     * @param simplify If true, any external relations will be nullified.
      * @private
      */
     private _prepareItemList<T extends Entity> (
         items: readonly MemoryItem[],
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        simplify: boolean
     ) : T[] {
-        return map(items, (item: MemoryItem) : T => this._prepareItem(item, metadata));
+        return map(items, (item: MemoryItem) : T => this._prepareItem(item, metadata, simplify));
     }
 
     /**
@@ -365,12 +381,17 @@ export class MemoryPersister implements Persister {
      *
      * @param item The item to clone
      * @param metadata
+     * @param simplify If true, any external relations will be nullified.
      * @private
      */
     private _prepareItem<T extends Entity> (
         item: MemoryItem,
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        simplify: boolean
     ) : T {
+        if (simplify) {
+            return EntityUtils.removeEntityRelations<T>(item.value as T, metadata);
+        }
         return item.value.clone() as T;
     }
 
@@ -384,7 +405,7 @@ export class MemoryPersister implements Persister {
         return map(
             list,
             (item) => this._populateRelations(item, metadata)
-        )
+        );
     }
 
     /**
@@ -400,15 +421,21 @@ export class MemoryPersister implements Persister {
         entity: T,
         metadata: EntityMetadata
     ) : T {
-        return this._populateManyToOneRelations(this._populateOneToManyRelations(entity, metadata), metadata);
-    };
+        entity = entity.clone() as T;
+        LOG.debug(`_populateRelations: entity = `, entity);
+        entity = this._populateOneToManyRelations(entity, metadata);
+        LOG.debug(`_populateRelations: oneToMany: `, entity);
+        entity = this._populateManyToOneRelations(entity, metadata);
+        LOG.debug(`_populateRelations: returns: `, entity);
+        return entity;
+    }
 
     /**
      * Returns the cloned entity, save to pass outside.
      *
      * This will also populate relate linked resources.
      *
-     * @param entity The item to populate.
+     * @param entity The item to populate. Note! We don't clone this!
      * @param metadata
      * @private
      */
@@ -416,13 +443,10 @@ export class MemoryPersister implements Persister {
         entity: T,
         metadata: EntityMetadata
     ) : T {
-
-        entity = entity.clone() as T;
-
         const tableName = metadata.tableName;
         const idPropertyName = metadata.idPropertyName;
         const entityId : string | number | undefined = has(entity, idPropertyName) ? (entity as any)[idPropertyName] as string|number : undefined;
-        // LOG.debug(`0. entityId = `, entityId, entity, idPropertyName, tableName);
+        LOG.debug(`_populateOneToManyRelations: 0. entityId = `, entityId, entity, idPropertyName, tableName);
         const oneToManyRelations = metadata?.oneToManyRelations;
 
         if (oneToManyRelations?.length) {
@@ -430,42 +454,39 @@ export class MemoryPersister implements Persister {
                 oneToManyRelations,
                 (oneToMany: EntityRelationOneToMany) => {
                     let { propertyName, mappedBy, mappedTable } = oneToMany;
-                    // LOG.debug(`1. propertyName = `, propertyName, mappedBy, mappedTable);
+                    LOG.debug(`_populateOneToManyRelations: 1. propertyName = `, propertyName, mappedBy, mappedTable);
                     if ( mappedTable && mappedBy ) {
                         const mappedToMetadata = this._metadataManager.getMetadataByTable(mappedTable);
-                        // LOG.debug(`2. mappedToMetadata = `,mappedToMetadata);
+                        LOG.debug(`_populateOneToManyRelations: 2. mappedToMetadata = `,mappedToMetadata);
                         if (mappedToMetadata) {
 
                             const joinColumn : EntityField | undefined = find(mappedToMetadata.fields, (field: EntityField) : boolean => field.propertyName === mappedBy);
-                            // LOG.debug(`3. joinColumn = `,joinColumn);
+                            LOG.debug(`_populateOneToManyRelations: 3. joinColumn = `,joinColumn);
                             if (joinColumn) {
                                 const joinColumnName = joinColumn.columnName;
-                                // LOG.debug(`4. joinColumnName = `, joinColumnName, metadata.fields);
+                                LOG.debug(`_populateOneToManyRelations: 4. joinColumnName = `, joinColumnName, metadata.fields);
                                 const joinPropertyName = EntityUtils.getPropertyName(joinColumnName, metadata.fields);
-                                // LOG.debug(`5. joinPropertyName = `, joinPropertyName);
+                                LOG.debug(`_populateOneToManyRelations: 5. joinPropertyName = `, joinPropertyName);
 
-                                // LOG.debug(`6. Searching related items for property "${mappedBy}" and inner property "${joinPropertyName}" mapped to table "${mappedTable}" by id "${entityId}"`);
+                                LOG.debug(`_populateOneToManyRelations: 6. Searching related items for column name "${joinColumnName}" and inner property "${joinPropertyName}" mapped to table "${mappedTable}" by id "${entityId}"`);
                                 const linkedEntities : MemoryItem[] = this._filterItems(
                                     (relatedItem: MemoryItem) : boolean => {
                                         const relatedEntity = relatedItem.value;
-                                        // LOG.debug(`7. relatedEntity = `, relatedEntity);
-                                        const relatedEntityProperty = has(relatedEntity, mappedBy) ? (relatedEntity as any)[mappedBy] : undefined;
-                                        if (relatedEntityProperty) {
-                                            // LOG.debug(`8. joinPropertyName = `, joinPropertyName);
-                                            // LOG.debug(`9. relatedEntityProperty = `, relatedEntityProperty);
-                                            const innerId : string | number | undefined = has(relatedEntityProperty, joinPropertyName) ? relatedEntityProperty[joinPropertyName] : undefined;
-                                            // LOG.debug(`10. innerId vs entityId = `, innerId, entityId);
-                                            return !!innerId && innerId === entityId;
-                                        } else {
-                                            return false;
-                                        }
+                                        LOG.debug(`_populateOneToManyRelations: 7. relatedEntity = `, relatedEntity, mappedBy);
+                                        const innerId : string | number | undefined = has(relatedEntity, mappedBy) ? (relatedEntity as any)[joinPropertyName] : undefined;
+                                        LOG.debug(`_populateOneToManyRelations: 10. innerId vs entityId = `, innerId, entityId);
+                                        return !!innerId && innerId === entityId;
                                     },
                                     mappedTable
                                 );
-                                (entity as any)[propertyName] = this._prepareItemList(
+                                LOG.debug(`_populateOneToManyRelations: linkedEntities = `, linkedEntities);
+                                const preparedEntities = this._prepareItemList(
                                     linkedEntities,
-                                    mappedToMetadata
+                                    mappedToMetadata,
+                                    true
                                 );
+                                LOG.debug(`_populateOneToManyRelations: prepared: linkedEntities = `, linkedEntities);
+                                (entity as any)[propertyName] = preparedEntities;
                             }
                         } else {
                             throw new TypeError(`Could not find metadata for linked table "${mappedTable} to populate property "${propertyName}" in table "${tableName}"`);
@@ -485,7 +506,7 @@ export class MemoryPersister implements Persister {
      *
      * This will also populate relate linked resources.
      *
-     * @param entity The item to populate.
+     * @param entity The item to populate. Note! We don't clone this!
      * @param metadata
      * @private
      */
@@ -493,9 +514,10 @@ export class MemoryPersister implements Persister {
         entity: T,
         metadata: EntityMetadata
     ) : T {
-        entity = entity.clone() as T;
         const tableName = metadata.tableName;
         const manyToOneRelations = metadata?.manyToOneRelations;
+
+        LOG.debug(`ManyToOneRelations: 0. tableName = `, tableName, manyToOneRelations);
 
         if (manyToOneRelations?.length) {
             forEach(
@@ -503,52 +525,63 @@ export class MemoryPersister implements Persister {
                 (manyToOne: EntityRelationManyToOne) => {
 
                     let { propertyName, mappedTable } = manyToOne;
-                    // LOG.debug(`1. propertyName = `, propertyName, mappedTable);
+                    LOG.debug(`ManyToOneRelations: 1. propertyName = `, propertyName, mappedTable);
 
                     const joinColumn : EntityField | undefined = find(metadata.fields, (field: EntityField) : boolean => field.propertyName === propertyName);
-                    // LOG.debug(`2. joinColumn = `, joinColumn);
+                    LOG.debug(`ManyToOneRelations: 2. joinColumn = `, joinColumn);
                     if (joinColumn) {
 
                         const joinColumnName = joinColumn.columnName;
-                        // LOG.debug(`3. joinColumnName = `, joinColumnName, metadata.fields);
+                        LOG.debug(`ManyToOneRelations: 3. joinColumnName = `, joinColumnName, metadata.fields);
 
                         if ( !mappedTable ) {
                             throw new TypeError(`No link to table exists to populate property "${propertyName}" in table "${tableName}"`);
                         }
 
                         const mappedToMetadata = this._metadataManager.getMetadataByTable(mappedTable);
-                        // LOG.debug(`4. mappedToMetadata = `, mappedToMetadata);
+                        LOG.debug(`ManyToOneRelations: 4. mappedToMetadata = `, mappedToMetadata);
                         if ( !mappedToMetadata ) {
                             throw new TypeError(`Could not find metadata for linked table "${mappedTable} to populate property "${propertyName}" in table "${tableName}"`);
                         }
 
-                        const relatedEntity = (entity as any)[propertyName];
+                        const joinPropertyName = EntityUtils.getPropertyName(joinColumnName, metadata.fields);
+                        LOG.debug(`ManyToOneRelations: 5. joinPropertyName = `, joinPropertyName);
+                        LOG.debug(`ManyToOneRelations: 5. entity = `, entity);
+
+                        const mappedId : string = has(entity, joinPropertyName) ? (entity as any)[joinPropertyName] : undefined;
+                        if ( !mappedId ) throw new TypeError(`Could not find related entity id ("${joinPropertyName}" from "${joinColumnName}") by property "${propertyName}"`);
+                        LOG.debug(`ManyToOneRelations: 5. mappedId = `, mappedId);
+
+                        const relatedMemoryItem : MemoryItem | undefined = find(this._data[mappedTable].items, (item: MemoryItem) : boolean => item.id === mappedId);
+                        if ( !relatedMemoryItem ) throw new TypeError(`Could not find related memory item by property "${propertyName}"`);
+
+                        LOG.debug(`ManyToOneRelations: 5. relatedMemoryItem = `, relatedMemoryItem);
+
+                        const relatedEntity = relatedMemoryItem.value;
+                        LOG.debug(`ManyToOneRelations: 5. relatedEntity = `, relatedEntity);
                         if ( !relatedEntity ) throw new TypeError(`Could not find related entity by property "${propertyName}"`);
 
-                        const joinPropertyName = EntityUtils.getPropertyName(joinColumnName, mappedToMetadata.fields);
-                        // LOG.debug(`5. joinPropertyName = `, joinPropertyName);
-                        //
-                        // LOG.debug(`6. Entity = `, entity);
-                        // LOG.debug(`6. Related Entity = `, relatedEntity);
+                        LOG.debug(`ManyToOneRelations: 6. Entity = `, entity);
+                        LOG.debug(`ManyToOneRelations: 6. Related Entity = `, relatedMemoryItem);
 
-                        const relatedId : string | undefined = has(relatedEntity, joinPropertyName) ? relatedEntity[joinPropertyName] : undefined;
-                        if ( !relatedId ) throw new TypeError(`Could not find related entity id by property "${joinPropertyName}"`);
+                        // const relatedId : string | undefined = has(relatedEntity, joinPropertyName) ? (relatedEntity as any)[joinPropertyName] : undefined;
+                        // LOG.debug(`ManyToOneRelations: 7. relatedId = `, relatedId);
+                        // if ( !relatedId ) throw new TypeError(`Could not find related entity id by property "${joinPropertyName}"`);
 
-                        // LOG.debug(`7. Related Entity Id = `, relatedId);
-
-                        const relatedTableName = mappedToMetadata.tableName;
-                        // LOG.debug(`8. Related Table = `, relatedTableName);
+                        // const relatedTableName = mappedToMetadata.tableName;
+                        // LOG.debug(`ManyToOneRelations: 8. Related Table = `, relatedTableName);
                         const storedRelatedItem : MemoryItem | undefined = this._findItem(
-                            (item: MemoryItem) : boolean => item.id === relatedId,
-                            relatedTableName
+                            (item: MemoryItem) : boolean => item.id === mappedId,
+                            mappedTable
                         );
-                        // LOG.debug(`9. storedRelatedItem = `, storedRelatedItem);
-                        if (!storedRelatedItem) throw new TypeError(`Could not find related entity by id "${relatedId}" from table "${relatedTableName}"`);
+                        LOG.debug(`ManyToOneRelations: 9. storedRelatedItem = `, storedRelatedItem);
+                        if (!storedRelatedItem) throw new TypeError(`Could not find related entity by id "${mappedId}" from table "${mappedTable}"`);
 
-                        (entity as any)[propertyName] = this._populateOneToManyRelations(this._prepareItem(
+                        (entity as any)[propertyName] = this._prepareItem(
                             storedRelatedItem,
-                            mappedToMetadata
-                        ), mappedToMetadata);
+                            mappedToMetadata,
+                            true
+                        );
 
                     }
                 }
