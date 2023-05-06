@@ -19,6 +19,7 @@ export const allRepositoryTests = (
 
     afterEach( () => {
         context.persister?.destroy();
+        context.persister = undefined;
     });
 
     (basicCrud ? describe : describe.skip)('CRUD operations', () => {

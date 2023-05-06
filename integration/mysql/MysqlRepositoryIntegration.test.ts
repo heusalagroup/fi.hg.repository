@@ -27,7 +27,7 @@ export const INTEGRATION_TESTS_ENABLED : boolean = TEST_SCOPES.includes('integra
         setCrudRepositoryLogLevel(LogLevel.NONE);
         CrudRepositoryImpl.setLogLevel(LogLevel.NONE);
         PersisterMetadataManagerImpl.setLogLevel(LogLevel.NONE);
-        MySqlPersister.setLogLevel(LogLevel.NONE);
+        MySqlPersister.setLogLevel(LogLevel.DEBUG);
     });
 
     describe('MySQL', () => {
@@ -53,3 +53,4 @@ export const INTEGRATION_TESTS_ENABLED : boolean = TEST_SCOPES.includes('integra
     });
 
 });
+

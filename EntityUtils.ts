@@ -27,10 +27,15 @@ import { EntityFieldType } from "./types/EntityFieldType";
 import { every } from "../core/functions/every";
 import { PersisterMetadataManager } from "./PersisterMetadataManager";
 import { has } from "../core/functions/has";
+import { LogLevel } from "../core/types/LogLevel";
 
 const LOG = LogService.createLogger('EntityUtils');
 
 export class EntityUtils {
+
+    public static setLogLevel (level: LogLevel) {
+        LOG.setLogLevel(level);
+    }
 
     public static getColumnName (
         propertyName : string,
@@ -215,6 +220,11 @@ export class EntityUtils {
         parentMetadata: EntityMetadata,
         metadataManager: PersisterMetadataManager
     ): T {
+
+        if (!dbEntity) {
+            throw new TypeError(`The dbEntity must be defined: ${dbEntity}`);
+        }
+
         const { createEntity, fields, manyToOneRelations, oneToManyRelations } = parentMetadata;
         if (!createEntity) throw new TypeError(`Could not create entity: No create function`);
         const ret : T = createEntity() as unknown as T;
@@ -223,33 +233,8 @@ export class EntityUtils {
             fields,
             (field: EntityField) : void => {
                 const {fieldType, propertyName, columnName, metadata} = field;
-
                 if (fieldType === EntityFieldType.JOINED_ENTITY) {
                     // This is handled below at @ManyToOne
-
-                    // if (!metadata) {
-                    //     throw new TypeError(`The child entity did not have metadata defined: Cannot build entity`);
-                    // }
-                    // const dbValue = dbEntity[columnName];
-                    // if ( isReadonlyJsonObject(dbValue) ) {
-                    //
-                    //     (ret as any)[propertyName] = this.toEntity(dbValue, metadata);
-                    //
-                    // } else if ( isString(dbValue) || isNumber(dbValue) ) {
-                    //
-                    //     const idPropertyName = metadata.idPropertyName;
-                    //     const createChildEntity = metadata.createEntity;
-                    //     if ( !(createChildEntity && idPropertyName) ) {
-                    //         throw new TypeError(`The child entity metadata did not have enough information to build up an entity`);
-                    //     }
-                    //     const childEntity = createChildEntity();
-                    //     (childEntity as any)[idPropertyName] = dbValue;
-                    //     (ret as any)[propertyName] = childEntity;
-                    //
-                    // } else if (dbValue !== undefined) {
-                    //     LOG.debug(`The child entity value was incorrect: dbValue = `, dbValue);
-                    //     throw new TypeError(`The child entity value was incorrect: ${dbValue}`);
-                    // }
                 } else {
                     (ret as any)[propertyName] = dbEntity[columnName];
                 }
@@ -265,25 +250,30 @@ export class EntityUtils {
                 if (!propertyName) return;
                 const mappedTable = relation?.mappedTable;
                 if (!mappedTable) {
-                    LOG.debug(`oneToMany: ${propertyName}: mappedTable=`, mappedTable);
+                    LOG.debug(`oneToMany: "${propertyName}": mappedTable=`, mappedTable);
                     throw new TypeError(`The property "${propertyName}" did not have table configured`);
                 }
                 const mappedMetadata = metadataManager.getMetadataByTable(mappedTable);
                 if (!mappedMetadata) {
-                    LOG.debug(`oneToMany: ${propertyName}: mappedMetadata=`, mappedMetadata);
+                    LOG.debug(`oneToMany: "${propertyName}": mappedMetadata=`, mappedMetadata);
                     throw new TypeError(`Could not find metadata for property "${propertyName}" from table "${mappedTable}"`);
                 }
 
                 let dbValue : any = has(dbEntity, propertyName) ? dbEntity[propertyName] : undefined;
                 if (dbValue !== undefined) {
                     if (isString(dbValue)) {
-                        dbValue = parseJson(dbValue);
+                        const jsonString = dbValue;
+                        dbValue = parseJson(jsonString);
+                        if (dbValue === undefined) throw new TypeError(`Failed to parse JSON: "${jsonString}"`)
                     }
                     if (!isArray(dbValue)) {
-                        throw new TypeError(`Expected the dbValue to be an array: ${dbValue}`);
+                        LOG.debug(`dbValue for property "${propertyName}" = `, dbValue);
+                        throw new TypeError(`Expected the dbValue for property "${propertyName}" to be an array: ${dbValue}`);
                     }
-                    (ret as any)[propertyName] = dbValue.map(
+                    (ret as any)[propertyName] = map(
+                        dbValue,
                         (value: any) => {
+                            if (value === undefined) throw new TypeError(`Unexpected undefined item in an array for property "${propertyName}"`);
                             return this.toEntity(value, mappedMetadata, metadataManager);
                         }
                     );
@@ -313,9 +303,11 @@ export class EntityUtils {
                 let dbValue : any = has(dbEntity, propertyName) ? dbEntity[propertyName] : undefined;
                 if (dbValue !== undefined) {
                     if (isString(dbValue)) {
-                        dbValue = parseJson(dbValue);
+                        const jsonString = dbValue;
+                        dbValue = parseJson(jsonString);
+                        if (dbValue === undefined) throw new TypeError(`Failed to parse JSON: "${jsonString}"`)
                     }
-                    // LOG.debug(`manyToOne: db value=`, dbValue);
+                    LOG.debug(`manyToOne: db value=`, dbValue);
                     (ret as any)[propertyName] = this.toEntity(dbValue, mappedMetadata, metadataManager);
                 }
 
@@ -343,13 +335,9 @@ export class EntityUtils {
         metadata    : EntityMetadata,
         tablePrefix : string = ''
     ): ID {
-
         const id = (entity as KeyValuePairs)[metadata.idPropertyName];
-
         if (id !== undefined) return id;
-
         throw new RepositoryError(RepositoryError.Code.ID_NOT_FOUND_FOR_TABLE, `Id property not found for table: "${tablePrefix}${metadata.tableName}"`);
-
     }
 
     public static isIdField (

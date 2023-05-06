@@ -44,3 +44,30 @@ You can also pass SQL dump files there like this:
 ```shell
 docker run -i --rm mysql:8 mysql -uhg -hhost.docker.internal -prxPe4XHbonLeHwjvKdq9R9aDWf1xiUje hg < ./initial.sql
 ```
+
+#### Quick guide to MySQL command line interface
+
+ * Display all tables:
+   ```mysql
+   SHOW TABLES;
+   ```
+ * Display table information:
+   ```mysql
+   DESCRIBE `carts`;
+   ```
+ * Show all table rows:
+   ```mysql
+   SELECT * FROM `carts`;
+   ```
+ * Delete all table rows:
+   ```mysql
+   DELETE FROM `carts`;
+   ```
+* Set better paging support:
+  ```postgresql
+  pager less -S -R
+  ```
+* Exit program:
+  ```postgresql
+  exit
+  ```

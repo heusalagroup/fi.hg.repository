@@ -10,6 +10,7 @@ import { PersisterMetadataManagerImpl } from "../../PersisterMetadataManagerImpl
 import { MySqlPersister } from "../../persisters/mysql/MySqlPersister";
 import { parseNonEmptyString } from "../../../core/types/String";
 import { PgPersister } from "../../persisters/pg/PgPersister";
+import { PgOidParserUtils } from "../../persisters/pg/PgOidParserUtils";
 
 export const TEST_SCOPES             : readonly string[] = (parseNonEmptyString(process?.env?.TEST_SCOPES) ?? '').split(/[,| :;+]+/);
 export const POSTGRES_HOSTNAME          : string   = parseNonEmptyString(process?.env?.TEST_POSTGRES_HOSTNAME)          ?? 'localhost';
@@ -30,6 +31,7 @@ export const INTEGRATION_TESTS_ENABLED : boolean = TEST_SCOPES.includes('integra
         CrudRepositoryImpl.setLogLevel(LogLevel.NONE);
         PersisterMetadataManagerImpl.setLogLevel(LogLevel.NONE);
         PgPersister.setLogLevel(LogLevel.NONE);
+        PgOidParserUtils.setLogLevel(LogLevel.NONE);
     });
 
     describe('PostgreSQL', () => {
@@ -39,10 +41,19 @@ export const INTEGRATION_TESTS_ENABLED : boolean = TEST_SCOPES.includes('integra
                 POSTGRES_USERNAME,
                 POSTGRES_PASSWORD,
                 POSTGRES_DATABASE,
-                POSTGRES_SSL
+                POSTGRES_SSL,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                100,
+                true,
+                undefined,
+                undefined,
+                undefined,
             ),
             true,
-            false
+            true
         );
     });
 

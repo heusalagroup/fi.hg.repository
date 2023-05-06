@@ -1,9 +1,15 @@
 // Copyright (c) 2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import { QueryBuilder } from "./QueryBuilder";
-import map from "lodash/map";
+import { QueryBuilder } from "../../../types/QueryBuilder";
+import { map } from "../../../../../core/functions/map";
+import { PgQueryUtils } from "../../PgQueryUtils";
+import { PgParameterListBuilder } from "./PgParameterListBuilder";
+import { forEach } from "../../../../../core/functions/forEach";
 
-export class MySqlAndFormulaBuilder implements QueryBuilder {
+/**
+ * Generates formulas like `"table"."column" IN ($#)[ AND "table"."column" = $#`
+ */
+export class PgAndBuilder implements QueryBuilder {
 
     private _formulaQuery : (() => string)[];
     private _formulaValues : (() => any)[];
@@ -18,10 +24,13 @@ export class MySqlAndFormulaBuilder implements QueryBuilder {
         columnName : string,
         values : readonly any[]
     ) {
-        this._formulaQuery.push( () => `??.?? IN (?)` );
-        this._formulaValues.push(() => tableName);
-        this._formulaValues.push(() => columnName);
-        this._formulaValues.push(() => values);
+        const builder = new PgParameterListBuilder();
+        builder.setParams(values);
+        this._formulaQuery.push( () => `${PgQueryUtils.quoteTableAndColumn(tableName, columnName)} IN (${builder.buildQueryString()})` );
+        forEach(
+            builder.getQueryValueFactories(),
+            (f) => this._formulaValues.push(f)
+        );
     }
 
     public setColumnEquals (
@@ -29,9 +38,7 @@ export class MySqlAndFormulaBuilder implements QueryBuilder {
         columnName : string,
         value : any
     ) {
-        this._formulaQuery.push( () => `??.?? = ?` );
-        this._formulaValues.push(() => tableName);
-        this._formulaValues.push(() => columnName);
+        this._formulaQuery.push( () => `${PgQueryUtils.quoteTableAndColumn(tableName, columnName)} = ${PgQueryUtils.getValuePlaceholder()}` );
         this._formulaValues.push(() => value);
     }
 

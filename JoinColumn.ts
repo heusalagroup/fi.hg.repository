@@ -23,7 +23,7 @@ export const JoinColumn = (
     return (target: any, propertyName : string | symbol) => {
         if (!isString(propertyName)) throw new TypeError(`Only string properties supported. The type was ${typeof propertyName}.`);
         EntityMetadataUtils.updateMetadata(target.constructor, (metadata: EntityMetadata) => {
-            metadata.fields.push(createEntityField(propertyName, columnName, nullable, EntityFieldType.JOINED_ENTITY));
+            metadata.fields.push(createEntityField(propertyName, columnName, undefined, nullable, EntityFieldType.JOINED_ENTITY));
         });
     };
 };

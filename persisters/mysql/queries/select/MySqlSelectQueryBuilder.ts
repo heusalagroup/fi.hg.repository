@@ -1,12 +1,9 @@
 // Copyright (c) 2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import { LogService } from "../../../core/LogService";
-import map from "lodash/map";
-import { QueryBuilder } from "./QueryBuilder";
-import { SelectQueryBuilder } from "./SelectQueryBuilder";
-import { forEach } from "../../../core/functions/forEach";
-
-const LOG = LogService.createLogger('MySqlSelectQueryBuilder');
+import { QueryBuilder } from "../../../types/QueryBuilder";
+import { SelectQueryBuilder } from "../../../types/SelectQueryBuilder";
+import { forEach } from "../../../../../core/functions/forEach";
+import { map } from "../../../../../core/functions/map";
 
 export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
 
@@ -46,7 +43,26 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
         this._where = builder;
     }
 
-    public includeAllColumnsFromTable (tableName: string) {
+    public includeColumn (
+        tableName: string,
+        columnName: string
+    ) {
+        this._fieldQueries.push(() => '??.??');
+        this._fieldValues.push(() => this.getCompleteTableName(tableName));
+        this._fieldValues.push(() => columnName);
+    }
+
+    public includeColumnAsText (
+        tableName: string,
+        columnName: string
+    ) {
+        this._fieldQueries.push(() => 'CAST(??.?? as char) AS ??');
+        this._fieldValues.push(() => this.getCompleteTableName(tableName));
+        this._fieldValues.push(() => columnName);
+        this._fieldValues.push(() => columnName);
+    }
+
+    public includeAllColumnsFromTable (tableName: string) : void {
         this._fieldQueries.push(() => '??.*');
         this._fieldValues.push(() => this.getCompleteTableName(tableName));
     }

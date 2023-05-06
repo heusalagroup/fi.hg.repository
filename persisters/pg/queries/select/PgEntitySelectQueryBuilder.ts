@@ -1,24 +1,28 @@
 // Copyright (c) 2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import { MySqlSelectQueryBuilder } from "./MySqlSelectQueryBuilder";
-import { SelectQueryBuilder } from "./SelectQueryBuilder";
-import { QueryBuilder } from "./QueryBuilder";
-import { MySqlEntityJsonObjectBuilder } from "./MySqlEntityJsonObjectBuilder";
-import { MySqlJsonArrayAggBuilder } from "./MySqlJsonArrayAggBuilder";
-import { EntityField } from "../../types/EntityField";
-import { EntityRelationOneToMany } from "../../types/EntityRelationOneToMany";
-import { PersisterMetadataManager } from "../../PersisterMetadataManager";
-import { forEach } from "../../../core/functions/forEach";
-import { EntityRelationManyToOne } from "../../types/EntityRelationManyToOne";
-import { find } from "../../../core/functions/find";
-import { EntityFieldType } from "../../types/EntityFieldType";
+import { PgSelectQueryBuilder } from "./PgSelectQueryBuilder";
+import { SelectQueryBuilder } from "../../../types/SelectQueryBuilder";
+import { QueryBuilder } from "../../../types/QueryBuilder";
+import { EntityField } from "../../../../types/EntityField";
+import { EntityRelationOneToMany } from "../../../../types/EntityRelationOneToMany";
+import { PersisterMetadataManager } from "../../../../PersisterMetadataManager";
+import { forEach } from "../../../../../core/functions/forEach";
+import { EntityRelationManyToOne } from "../../../../types/EntityRelationManyToOne";
+import { find } from "../../../../../core/functions/find";
+import { EntityFieldType } from "../../../../types/EntityFieldType";
+import { PgArrayAggBuilder } from "../formulas/PgArrayAggBuilder";
+import { PgRowEntityBuilder } from "../formulas/PgRowEntityBuilder";
+import { PgUnnestBuilder } from "../formulas/PgUnnestBuilder";
+import { PgJsonAggBuilder } from "../formulas/PgJsonAggBuilder";
+import { PgJsonBuildObjectEntityBuilder } from "../formulas/PgJsonBuildObjectEntityBuilder";
+import { PgJsonIndexBuilder } from "../formulas/PgJsonIndexBuilder";
 
-export class MySqlEntitySelectQueryBuilder implements SelectQueryBuilder {
+export class PgEntitySelectQueryBuilder implements SelectQueryBuilder {
 
-    private _builder : MySqlSelectQueryBuilder;
+    private _builder : PgSelectQueryBuilder;
 
     public constructor () {
-        this._builder = new MySqlSelectQueryBuilder();
+        this._builder = new PgSelectQueryBuilder();
     }
 
     public build (): [ string, any[] ] {
@@ -89,25 +93,19 @@ export class MySqlEntitySelectQueryBuilder implements SelectQueryBuilder {
     }
 
     /**
-     * One to many relations
+     * Append a relation from one entity to many, e.g. the property will be an
+     * array.
      *
-     * OneToMany will build a query like this:
+     * The PostgreSQL query will look like this:
      *
+     * ```
      * SELECT
-     *   carts.*,
-     *   JSON_ARRAYAGG(JSON_OBJECT("cart_item_id", cart_items.cart_item_id, "cart_id", cart_items.cart_id, "cart_item_name", cart_items.cart_item_name)) AS cartItems
+     *   "carts".*,
+     *   array_agg(ROW("cart_items"."cart_item_id", "cart_items"."cart_id", "cart_items"."cart_item_name")) AS "cartItems"
      * FROM carts
-     * LEFT JOIN cart_items ON carts.cart_id = cart_items.cart_id
-     * GROUP BY carts.cart_id;
-     *
-     * e.g.:
-     *
-     * SELECT
-     *   ??.*,
-     *   JSON_ARRAYAGG(JSON_OBJECT(?, ??.??, ?, ??.??, ?, ??.??)) AS ??
-     * FROM ??
-     * LEFT JOIN ?? ON ??.?? = ??.??
-     * GROUP BY ??.??;
+     * LEFT JOIN "cart_items" ON "carts"."cart_id" = "cart_items"."cart_id"
+     * GROUP BY "carts"."cart_id";
+     * ```
      *
      * @param propertyName
      * @param fields
@@ -124,11 +122,15 @@ export class MySqlEntitySelectQueryBuilder implements SelectQueryBuilder {
         sourceTableName  : string,
         sourceColumnName : string
     ) {
-        const jsonObjectQueryBuilder = new MySqlEntityJsonObjectBuilder();
-        jsonObjectQueryBuilder.setEntityFieldsFromTable( this.getCompleteTableName(targetTableName), fields);
-        const jsonArrayAggBuilder = new MySqlJsonArrayAggBuilder();
-        jsonArrayAggBuilder.setFormulaFromQueryBuilder(jsonObjectQueryBuilder);
-        this._builder.includeColumnFromQueryBuilder(jsonArrayAggBuilder, propertyName);
+        this._builder.includeColumnFromQueryBuilder(
+            PgJsonAggBuilder.create(
+                PgJsonBuildObjectEntityBuilder.create(
+                    this.getCompleteTableName(targetTableName),
+                    fields
+                )
+            ),
+            propertyName
+        );
         this._builder.leftJoinTable(
             targetTableName, targetColumnName,
             sourceTableName, sourceColumnName
@@ -136,24 +138,21 @@ export class MySqlEntitySelectQueryBuilder implements SelectQueryBuilder {
     }
 
     /**
+     * Append a relation from many entities to one, e.g. the property will be
+     * single entity object.
      *
-     * Many to one relations
-     *
-     * @ManyToOne will do a query like this:
-     *
+     * The PostgreSQL query will look like this:
+     * ```
      * SELECT
-     *   cart_items.*,
-     *   JSON_OBJECT("cart_id", carts.cart_id, "cart_name", carts.cart_name) AS cart
-     * FROM cart_items
-     * LEFT JOIN carts ON carts.cart_id = cart_items.cart_id
-     * GROUP BY cart_items.cart_item_id;
+     *   "cart_items".*,
+     *   json_agg(json_build_object('cart_id', "carts"."cart_id", 'cart_name', "carts"."cart_name"))->0 AS cart
+     * FROM "cart_items"
+     * LEFT JOIN "carts" ON "carts"."cart_id" = "cart_items"."cart_id"
+     * GROUP BY "cart_items"."cart_item_id";
+     * ```
      *
-     * SELECT
-     *   ??.*,
-     *   JSON_OBJECT(?, ??.??, ?, ??.??) AS ??
-     * FROM ??
-     * LEFT JOIN ?? ON ??.?? = ??.??
-     * GROUP BY ??.??;
+     * ***Note*** that this only works if the "carts"."carts_id" is unique!
+     * There will be multiple entities returned if not.
      *
      * @param propertyName
      * @param fields
@@ -170,9 +169,17 @@ export class MySqlEntitySelectQueryBuilder implements SelectQueryBuilder {
         sourceTableName  : string,
         sourceColumnName : string
     ) {
-        const jsonObjectQueryBuilder = new MySqlEntityJsonObjectBuilder();
-        jsonObjectQueryBuilder.setEntityFieldsFromTable(this.getCompleteTableName(targetTableName), fields);
-        this._builder.includeColumnFromQueryBuilder(jsonObjectQueryBuilder, propertyName);
+        this._builder.includeColumnFromQueryBuilder(
+            PgJsonIndexBuilder.create(
+                PgJsonAggBuilder.create(
+                    PgJsonBuildObjectEntityBuilder.create(
+                        this.getCompleteTableName(targetTableName), fields
+                    )
+                ),
+                0
+            ),
+            propertyName
+        );
         this._builder.leftJoinTable(
             targetTableName, targetColumnName,
             sourceTableName, sourceColumnName

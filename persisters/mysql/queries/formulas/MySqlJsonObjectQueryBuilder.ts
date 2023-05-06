@@ -1,8 +1,11 @@
 // Copyright (c) 2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import map from "lodash/map";
-import { QueryBuilder } from "./QueryBuilder";
+import { QueryBuilder } from "../../../types/QueryBuilder";
+import { map } from "../../../../../core/functions/map";
 
+/**
+ * This generates formulas like `JSON_OBJECT(property, table.column[, property2, table2.column2, ...])`
+ */
 export class MySqlJsonObjectQueryBuilder implements QueryBuilder {
 
     private _keyValueQueries : (() => string)[];
@@ -34,6 +37,23 @@ export class MySqlJsonObjectQueryBuilder implements QueryBuilder {
         this._keyValueValues.push(() => columnName);
     }
 
+    /**
+     *
+     * @param propertyName The property name in the JSON object
+     * @param tableName The table name from where to read the value
+     * @param columnName The column name in the table where to read the value
+     */
+    public setPropertyFromColumnAsChar (
+        propertyName: string,
+        tableName: string,
+        columnName: string
+    ) {
+        this._keyValueQueries.push(() => `?, CAST(??.?? as char)`);
+        this._keyValueValues.push(() => propertyName);
+        this._keyValueValues.push(() => tableName);
+        this._keyValueValues.push(() => columnName);
+    }
+
     public buildQueryString () : string {
         const keyValueQueries = map(this._keyValueQueries, (f) => f());
         return `JSON_OBJECT(${keyValueQueries.join(', ')})`;
@@ -47,8 +67,4 @@ export class MySqlJsonObjectQueryBuilder implements QueryBuilder {
         return this._keyValueValues;
     }
 
-}
-
-export function isMySqlJsonObjectQueryBuilder (value: unknown): value is MySqlJsonObjectQueryBuilder {
-    return value instanceof MySqlJsonObjectQueryBuilder;
 }

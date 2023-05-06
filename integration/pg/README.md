@@ -36,11 +36,34 @@ TEST_POSTGRES_PASSWORD='rxPe4XHbonLeHwjvKdq9R9aDWf1xiUje' TEST_SCOPES=integratio
 ### PostgreSQL console
 
 ```shell
-docker run -it --rm postgres:15 psql -uhg -hhost.docker.internal -prxPe4XHbonLeHwjvKdq9R9aDWf1xiUje hg
+docker run -it --rm postgres:15 psql 'postgresql://hg:rxPe4XHbonLeHwjvKdq9R9aDWf1xiUje@host.docker.internal/hg
 ```
 
 You can also pass SQL dump files there like this:
 
 ```shell
-docker run -i --rm postgres:15 psql -uhg -hhost.docker.internal -prxPe4XHbonLeHwjvKdq9R9aDWf1xiUje hg < ./initial.sql
+docker run -i --rm postgres:15 psql 'postgresql://hg:rxPe4XHbonLeHwjvKdq9R9aDWf1xiUje@host.docker.internal/hg < ./initial.sql
 ```
+
+#### Quick guide to PostgreSQL command line interface
+
+* Display all tables and relations:
+  ```postgresql
+  \d+
+  ```
+* Display table information:
+  ```postgresql
+  \d "carts"
+  ```
+* Show all table rows:
+  ```postgresql
+  SELECT * FROM "carts";
+  ```
+* Delete all table rows:
+  ```postgresql
+  DELETE FROM "carts";
+  ```
+* Exit program
+  ```postgresql
+  \q
+  ```

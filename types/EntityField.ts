@@ -3,6 +3,7 @@
 
 import { EntityFieldType, parseEntityFieldType } from "./EntityFieldType";
 import { EntityMetadata } from "./EntityMetadata";
+import { toUpper } from "../../core/functions/toUpper";
 
 export interface EntityField {
 
@@ -17,6 +18,13 @@ export interface EntityField {
      * The field name in the database table
      */
     columnName   : string;
+
+    /**
+     * The database column definition.
+     *
+     * E.g. `BIGINT`.
+     */
+    columnDefinition ?: string;
 
     /**
      * If enabled, this field can be left undefined.
@@ -35,6 +43,7 @@ export interface EntityField {
 export function createEntityField (
     propertyName : string,
     columnName   : string,
+    columnDefinition ?: string,
     nullable    ?: boolean | undefined,
     fieldType   ?: EntityFieldType | undefined,
     metadata    ?: EntityMetadata | undefined,
@@ -42,6 +51,7 @@ export function createEntityField (
     return {
         propertyName,
         columnName,
+        ...(columnDefinition ? {columnDefinition: toUpper(columnDefinition)} : {}),
         nullable : nullable ?? true,
         fieldType : parseEntityFieldType(fieldType) ?? EntityFieldType.UNKNOWN,
         ...(metadata ? {metadata} : {})

@@ -1,10 +1,14 @@
 // Copyright (c) 2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import { EntityField } from "../../types/EntityField";
-import { QueryBuilder } from "./QueryBuilder";
+import { EntityField } from "../../../../types/EntityField";
+import { QueryBuilder } from "../../../types/QueryBuilder";
 import { MySqlJsonObjectQueryBuilder } from "./MySqlJsonObjectQueryBuilder";
-import { EntityFieldType } from "../../types/EntityFieldType";
+import { EntityFieldType } from "../../../../types/EntityFieldType";
 
+/**
+ * This generates formulas like `JSON_OBJECT(property, table.column[, property2, table2.column2, ...])`
+ * but can configure it just by using the table name and entity field array.
+ */
 export class MySqlEntityJsonObjectBuilder implements QueryBuilder {
 
     private readonly _jsonBuilder : MySqlJsonObjectQueryBuilder;
@@ -20,13 +24,21 @@ export class MySqlEntityJsonObjectBuilder implements QueryBuilder {
     ) {
         fields.forEach(
             (field: EntityField) => {
-                const {columnName, fieldType} = field;
+                const {columnName, fieldType, columnDefinition} = field;
                 if (fieldType !== EntityFieldType.JOINED_ENTITY) {
-                    this._jsonBuilder.setPropertyFromColumn(
-                        columnName,
-                        tableName,
-                        columnName
-                    );
+                    if (columnDefinition === "BIGINT") {
+                        this._jsonBuilder.setPropertyFromColumnAsChar(
+                            columnName,
+                            tableName,
+                            columnName
+                        );
+                    } else {
+                        this._jsonBuilder.setPropertyFromColumn(
+                            columnName,
+                            tableName,
+                            columnName
+                        );
+                    }
                 }
             }
         );

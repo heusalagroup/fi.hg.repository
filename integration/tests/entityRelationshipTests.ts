@@ -10,6 +10,9 @@ import { Repository } from "../../types/Repository";
 import { createCrudRepositoryWithPersister } from "../../CrudRepository";
 import { ManyToOne } from "../../ManyToOne";
 import { find } from "../../../core/functions/find";
+import { EntityUtils } from "../../EntityUtils";
+import { LogLevel } from "../../../core/types/LogLevel";
+import { isString } from "../../../core/types/String";
 
 export const entityRelationshipTests = (context : RepositoryTestContext) : void => {
 
@@ -23,7 +26,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
         }
 
         @Id()
-        @Column('cart_id')
+        @Column('cart_id', 'BIGINT')
         public cartId ?: string;
 
         @Column('cart_name')
@@ -31,7 +34,6 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
 
         @OneToMany("cart")
         public cartItems : readonly CartItemEntity[];
-
 
     }
 
@@ -45,10 +47,10 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
         }
 
         @Id()
-        @Column('cart_item_id')
+        @Column('cart_item_id', 'BIGINT')
         public cartItemId ?: string;
 
-        @Column('cart_id')
+        @Column('cart_id', 'BIGINT')
         public cartId ?: string;
 
         @Column('cart_item_name')
@@ -112,6 +114,8 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
 
     beforeEach( async () => {
 
+        EntityUtils.setLogLevel(LogLevel.NONE);
+
         persister = context.getPersister();
 
         cartRepository = createCrudRepositoryWithPersister<CartEntity, string, CartRepository>(
@@ -134,7 +138,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartA.getMetadata()
         );
         cartA_id = cartA?.cartId as string;
-        if (!cartA_id) throw new TypeError('cartA_id failed to initialize');
+        if (!isString(cartA_id)) throw new TypeError(`cartA_id failed to initialize: ${JSON.stringify(cartA_id)}`);
 
         // LOG.debug(`Step 2`)
         cartA_item1 = new CartItemEntity({cartId: cartA_id, cartItemName: cartA_item1_name});
@@ -143,7 +147,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartA_item1.getMetadata()
         );
         cartA_item1_id = cartA_item1?.cartItemId as string;
-        if (!cartA_item1_id) throw new TypeError('cartItemA1_id failed to initialize');
+        if (!isString(cartA_item1_id)) throw new TypeError(`cartItemA1_id failed to initialize: ${JSON.stringify(cartA_item1_id)}`);
 
         // LOG.debug(`Step 3`)
         cartA_item2 = new CartItemEntity({cartId: cartA_id, cartItemName: cartA_item2_name});
@@ -152,7 +156,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartA_item2.getMetadata()
         );
         cartA_item2_id = cartA_item2?.cartItemId as string;
-        if (!cartA_item2_id) throw new TypeError('cartItemA2_id failed to initialize');
+        if (!isString(cartA_item2_id)) throw new TypeError(`cartItemA2_id failed to initialize: ${JSON.stringify(cartA_item2_id)}`);
 
         // LOG.debug(`Step 4`)
         cartA_item3 = new CartItemEntity({cartId: cartA_id, cartItemName: cartA_item3_name});
@@ -161,7 +165,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartA_item3.getMetadata()
         );
         cartA_item3_id = cartA_item3?.cartItemId as string;
-        if (!cartA_item3_id) throw new TypeError('cartItemA3_id failed to initialize');
+        if (!isString(cartA_item3_id)) throw new TypeError(`cartItemA3_id failed to initialize: ${JSON.stringify(cartA_item3_id)}`);
 
         // LOG.debug(`Step 5`)
         cartB = new CartEntity({cartName: cartB_name});
@@ -170,7 +174,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartB.getMetadata()
         );
         cartB_id = cartB?.cartId as string;
-        if (!cartB_id) throw new TypeError('cartB_id failed to initialize');
+        if (!isString(cartB_id)) throw new TypeError(`cartB_id failed to initialize: ${JSON.stringify(cartB_id)}`);
 
         // LOG.debug(`Step 6`)
         cartB_item1 = new CartItemEntity({cartId: cartB_id, cartItemName: cartB_item1_name});
@@ -179,7 +183,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartB_item1.getMetadata()
         );
         cartB_item1_id = cartB_item1?.cartItemId as string;
-        if (!cartB_item1_id) throw new TypeError('cartB_item1_id failed to initialize');
+        if (!isString(cartB_item1_id)) throw new TypeError(`cartB_item1_id failed to initialize: ${JSON.stringify(cartB_item1_id)}`);
 
         // LOG.debug(`Step 7`)
         cartB_item2 = new CartItemEntity({cartId: cartB_id, cartItemName: cartB_item2_name});
@@ -188,7 +192,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartB_item2.getMetadata()
         );
         cartB_item2_id = cartB_item2?.cartItemId as string;
-        if (!cartB_item2_id) throw new TypeError('cartB_item2_id failed to initialize');
+        if (!isString(cartB_item2_id)) throw new TypeError(`cartB_item2_id failed to initialize: ${JSON.stringify(cartB_item2_id)}`);
 
         // LOG.debug(`Step 8`)
         cartB_item3 = new CartItemEntity({cartId: cartB_id, cartItemName: cartB_item3_name});
@@ -197,7 +201,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             cartB_item3.getMetadata()
         );
         cartB_item3_id = cartB_item3?.cartItemId as string;
-        if (!cartB_item3_id) throw new TypeError('cartB_item3_id failed to initialize');
+        if (!isString(cartB_item3_id)) throw new TypeError(`cartB_item3_id failed to initialize: ${JSON.stringify(cartB_item3_id)}`);
 
         // LOG.debug(`Step 9`)
 
@@ -249,6 +253,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             const item5 = find(items, (item) => item?.cartItemId === cartB_item2_id);
             const item6 = find(items, (item) => item?.cartItemId === cartB_item3_id);
 
+            expect(item1?.cart).toBeDefined();
             expect(item1?.cart?.cartId).toBe(cartA_id);
             expect(item1?.cart?.cartName).toBe(cartA_name);
             expect((item1?.cart?.cartItems as any)?.length).toBe(0);
@@ -256,6 +261,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             // expect((item1?.cart?.cartItems as any)[1]?.cartItemId).toBe(cartA_item2_id);
             // expect((item1?.cart?.cartItems as any)[2]?.cartItemId).toBe(cartA_item3_id);
 
+            expect(item2?.cart).toBeDefined();
             expect(item2?.cart?.cartId).toBe(cartA_id);
             expect(item2?.cart?.cartName).toBe(cartA_name);
             expect((item2?.cart?.cartItems as any)?.length).toBe(0);
@@ -263,6 +269,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             // expect((item2?.cart?.cartItems as any)[1]?.cartItemId).toBe(cartA_item2_id);
             // expect((item2?.cart?.cartItems as any)[2]?.cartItemId).toBe(cartA_item3_id);
 
+            expect(item3?.cart).toBeDefined();
             expect(item3?.cart?.cartId).toBe(cartA_id);
             expect(item3?.cart?.cartName).toBe(cartA_name);
             expect((item3?.cart?.cartItems as any)?.length).toBe(0);
@@ -270,6 +277,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             // expect((item3?.cart?.cartItems as any)[1]?.cartItemId).toBe(cartA_item2_id);
             // expect((item3?.cart?.cartItems as any)[2]?.cartItemId).toBe(cartA_item3_id);
 
+            expect(item4?.cart).toBeDefined();
             expect(item4?.cart?.cartId).toBe(cartB_id);
             expect(item4?.cart?.cartName).toBe(cartB_name);
             expect((item4?.cart?.cartItems as any)?.length).toBe(0);
@@ -277,6 +285,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             // expect((item4?.cart?.cartItems as any)[1]?.cartItemId).toBe(cartB_item2_id);
             // expect((item4?.cart?.cartItems as any)[2]?.cartItemId).toBe(cartB_item3_id);
 
+            expect(item5?.cart).toBeDefined();
             expect(item5?.cart?.cartId).toBe(cartB_id);
             expect(item5?.cart?.cartName).toBe(cartB_name);
             expect((item5?.cart?.cartItems as any)?.length).toBe(0);
@@ -284,6 +293,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
             // expect((item5?.cart?.cartItems as any)[1]?.cartItemId).toBe(cartB_item2_id);
             // expect((item5?.cart?.cartItems as any)[2]?.cartItemId).toBe(cartB_item3_id);
 
+            expect(item6?.cart).toBeDefined();
             expect(item6?.cart?.cartId).toBe(cartB_id);
             expect(item6?.cart?.cartName).toBe(cartB_name);
             expect((item6?.cart?.cartItems as any)?.length).toBe(0);
@@ -451,8 +461,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
 
             const newItem = new CartItemEntity(
                 {
-                    cartItemName: 'New Item 1',
-                    cartId: ''
+                    cartItemName: 'New Item 1'
                 }
             );
 
@@ -517,8 +526,7 @@ export const entityRelationshipTests = (context : RepositoryTestContext) : void 
 
             const newItem = new CartItemEntity(
                 {
-                    cartItemName: 'New Item 1',
-                    cartId: ''
+                    cartItemName: 'New Item 1'
                 }
             );
 

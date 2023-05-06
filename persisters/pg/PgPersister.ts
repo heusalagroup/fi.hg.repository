@@ -1,7 +1,7 @@
 // Copyright (c) 2022-2023. Heusala Group Oy. All rights reserved.
 // Copyright (c) 2020-2021. Sendanor. All rights reserved.
 
-import { Pool, QueryResult } from "pg";
+import { Pool, QueryResult, types } from "pg";
 import { EntityMetadata } from "../../types/EntityMetadata";
 import { Persister } from "../../Persister";
 import { Entity, EntityIdTypes } from "../../Entity";
@@ -14,8 +14,19 @@ import { reduce } from "../../../core/functions/reduce";
 import { LogService } from "../../../core/LogService";
 import { LogLevel } from "../../../core/types/LogLevel";
 import { isSafeInteger } from "../../../core/types/Number";
+import { PersisterMetadataManager } from "../../PersisterMetadataManager";
+import { PersisterMetadataManagerImpl } from "../../PersisterMetadataManagerImpl";
+import { EntityFieldType } from "../../types/EntityFieldType";
+import { PgEntitySelectQueryBuilder } from "./queries/select/PgEntitySelectQueryBuilder";
+import { PgAndBuilder } from "./queries/formulas/PgAndBuilder";
+import { PgQueryUtils } from "./PgQueryUtils";
+import { PgOid } from "./PgOid";
+import { PgOidParserUtils } from "./PgOidParserUtils";
 
 const LOG = LogService.createLogger('PgPersister');
+
+// FIXME: Make this lazy so that it doesn't happen if the PgPersister has not been used
+types.setTypeParser(PgOid.RECORD as number, PgOidParserUtils.parseRecord);
 
 /**
  * This persister implements entity store over PostgreSQL database.
@@ -26,68 +37,93 @@ export class PgPersister implements Persister {
         LOG.setLogLevel(level);
     }
 
-    private _pool: Pool;
+    private _pool: Pool | undefined;
+    private readonly _metadataManager : PersisterMetadataManager;
+    private readonly _tablePrefix : string;
 
     public constructor (
         host: string,
         user: string,
         password: string,
         database: string,
-        ssl : boolean | undefined = undefined
+        ssl : boolean | undefined = undefined,
+        tablePrefix: string = '',
+        applicationName: string | undefined = undefined,
+        connectionTimeoutMillis : number | undefined = undefined,
+        idleTimeoutMillis : number | undefined = undefined,
+        maxClients: number = 100,
+        allowExitOnIdle : boolean | undefined = undefined,
+        queryTimeout: number | undefined = undefined,
+        statementTimeout: number | undefined = undefined,
+        idleInTransactionSessionTimeout: number | undefined = undefined
     ) {
+        this._tablePrefix = tablePrefix;
         this._pool = new Pool(
             {
                 host,
                 user,
                 password,
                 database,
-                ...(ssl !== undefined ? {ssl} : {})
+                ...(ssl !== undefined ? {ssl} : {}),
+                ...(applicationName !== undefined ? {application_name: applicationName} : {}),
+                ...(queryTimeout !== undefined ? {query_timeout: queryTimeout} : {}),
+                ...(statementTimeout !== undefined ? {statement_timeout: statementTimeout} : {}),
+                ...(connectionTimeoutMillis !== undefined ? {connectionTimeoutMillis} : {}),
+                ...(idleInTransactionSessionTimeout !== undefined ? {idle_in_transaction_session_timeout: idleInTransactionSessionTimeout} : {}),
+                ...(idleTimeoutMillis !== undefined ? {idleTimeoutMillis} : {}),
+                ...(maxClients !== undefined ? {max: maxClients} : {}),
+                ...(allowExitOnIdle !== undefined ? {allowExitOnIdle} : {}),
             }
         );
+        this._pool.on('error', (err, client) => {
+            LOG.error(`Unexpected error on idle client: `, err);
+        })
+        this._metadataManager = new PersisterMetadataManagerImpl();
+
     }
 
-    public destroy () {}
+    public destroy () {
+        if (this._pool) {
+            this._pool.removeAllListeners('error');
+            // FIXME: Is there something we should do to tell the pool to destroy itself?
+            this._pool.end().catch((err) => {
+                LOG.error(`Error closing pool: ${err}`);
+            });
+            this._pool = undefined;
+        }
+    }
 
     public setupEntityMetadata (metadata: EntityMetadata) : void {
-
+        this._metadataManager.setupEntityMetadata(metadata);
     }
 
     public async insert<T extends Entity, ID extends EntityIdTypes> (entity: T | readonly T[], metadata: EntityMetadata): Promise<T> {
         const {tableName} = metadata;
-        const fields = metadata.fields.filter((fld) => !this._isIdField(fld, metadata));
-        const colNames = fields.map((col) => col.columnName).join(",");
-        const values = fields.map((col) => col.propertyName).map((p) => (entity as any)[p]);
+        const fields = metadata.fields.filter((fld) => !this._isIdField(fld, metadata) && fld.fieldType !== EntityFieldType.JOINED_ENTITY);
+        const colNames = map(fields, (col) => col.columnName).join(",");
+        const values = map(fields, (col) => col.propertyName).map((p) => (entity as any)[p]);
         const placeholders = Array.from({length: fields.length}, (_, i) => i + 1)
                                   .map((i) => `$${i}`)
                                   .reduce((prev, curr) => `${prev},${curr}`);
         const insert = `INSERT INTO ${tableName}(${colNames})
                         VALUES (${placeholders}) RETURNING *`;
+        LOG.debug(`insert query = `, insert, values);
         const result = await this._query(insert, values);
-        if (!result) throw new TypeError(`Result was not defined: ${result}`);
-        const rows = result.rows;
-        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
-        const row = first(rows);
-        if (!row) throw new TypeError(`Result row was not found: ${rows}`);
-        return this._toEntity<T, ID>(row, metadata);
+        return this._toFirstEntityOrFail<T, ID>(result, metadata);
     }
 
     public async update<T extends Entity, ID extends EntityIdTypes> (entity: T, metadata: EntityMetadata): Promise<T> {
         const {tableName} = metadata;
         const idColName = this._getIdColumnName(metadata);
         const id = this._getId(entity, metadata);
-        const fields = metadata.fields.filter((fld) => !this._isIdField(fld, metadata));
-        const setters = fields.map((fld, idx) => `${fld.columnName}=$${idx + 2}`).reduce((prev, curr) => `${prev},${curr}`);
-        const values = [ id ].concat(fields.map((col) => col.propertyName).map((p) => (entity as any)[p]));
+        const fields = metadata.fields.filter((fld) => !this._isIdField(fld, metadata) && fld.fieldType !== EntityFieldType.JOINED_ENTITY);
+        const setters = map(fields, (fld, idx) => `${fld.columnName}=$${idx + 2}`).reduce((prev, curr) => `${prev},${curr}`);
+        const values = [ id ].concat( map(fields, (col) => (entity as any)[col.propertyName]) );
         const update = `UPDATE ${tableName}
                         SET ${setters}
                         WHERE ${idColName} = $1 RETURNING *`;
         const result = await this._query(update, values);
-        if (!result) throw new TypeError(`Result was not defined: ${result}`);
-        const rows = result.rows;
-        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
-        const row = first(rows);
-        if (!row) throw new TypeError(`Result row was not found: ${rows}`);
-        return this._toEntity<T, ID>(row, metadata);
+        return this._toFirstEntityOrFail<T, ID>(result, metadata);
     }
 
     public async delete<T extends Entity, ID extends EntityIdTypes> (entity: T, metadata: EntityMetadata): Promise<void> {
@@ -101,61 +137,97 @@ export class PgPersister implements Persister {
     }
 
     public async findAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<T[]> {
-        const {tableName} = metadata;
-        const select = `SELECT *
-                        FROM ${tableName}`;
-        const result = await this._query(select, []);
-        return result.rows.map((row: any) => this._toEntity(row, metadata));
+        LOG.debug(`findAll: metadata = `, metadata);
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findAll: tableName = `, tableName, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new PgEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const [queryString, queryValues] = builder.build();
+        LOG.debug(`findAll: queryString = `, queryString, queryValues);
+        const result = await this._query(queryString, queryValues);
+        return this._toEntityArray(result, metadata);
     }
 
     public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<T[]> {
-        const queryParams = map(ids, (item) => item);
-        const {tableName} = metadata;
-        const idColumnName = this._getIdColumnName(metadata);
-        const placeholders = Array.from({length: ids.length}, (_, i) => i + 1)
-                                  .map((i) => `$${i}`)
-                                  .reduce((prev, curr) => `${prev},${curr}`);
-        const select = `SELECT *
-                        FROM ${tableName}
-                        WHERE ${idColumnName} IN (${placeholders})`;
-        const result = await this._query(select, queryParams);
-        return result.rows.map((row: any) => this._toEntity(row, metadata));
+
+        LOG.debug(`findAllById: ids = `, ids);
+        if (ids.length <= 0) throw new TypeError('At least one ID must be selected. Array was empty.');
+        LOG.debug(`findAllById: metadata = `, metadata);
+
+        // const queryValues = [`${this._tablePrefix}${tableName}`, idColumnName, ids];
+        // LOG.debug(`findAllById: queryValues = `, queryValues);
+
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findAllById: tableName = `, tableName, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new PgEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new PgAndBuilder();
+        where.setColumnInList(builder.getCompleteTableName(tableName), mainIdColumnName, ids);
+        builder.setWhereFromQueryBuilder(where);
+
+        const [queryString, queryValues] = builder.build();
+
+        const result = await this._query(queryString, queryValues);
+        return this._toEntityArray<T, ID>(result, metadata);
     }
 
     public async findById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<T | undefined> {
-        const {tableName} = metadata;
-        const idColumnName = this._getIdColumnName(metadata);
-        const select = `SELECT *
-                        FROM ${tableName}
-                        WHERE ${idColumnName} = $1`;
-        const result = await this._query(select, [ id ]);
-        if (!result) throw new TypeError(`Result was not defined: ${result}`);
-        const rows = result.rows;
-        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
-        const row = first(rows);
-        if (!row) return undefined;
-        return this._toEntity<T, ID>(row, metadata);
+        LOG.debug(`findById: id = `, id);
+        LOG.debug(`findById: metadata = `, metadata);
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findById: tableName = `, tableName, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new PgEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new PgAndBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), mainIdColumnName, id);
+        builder.setWhereFromQueryBuilder(where);
+        const [queryString, queryValues] = builder.build();
+        const result = await this._query(queryString, queryValues);
+        return this._toFirstEntityOrUndefined<T, ID>(result, metadata);
     }
 
-    public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<T[]> {
-        const {tableName} = metadata;
-        const columnName = this._getColumnName(property, metadata.fields);
-        const select = `SELECT *
-                        FROM ${tableName}
-                        WHERE ${columnName} = $1`;
-        const result = await this._query(select, [ value ]);
-        return result.rows.map((row: any) => this._toEntity(row, metadata));
-    }
-
-    private _toEntity<T extends Entity, ID extends EntityIdTypes> (
-        entity: KeyValuePairs,
+    public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (
+        property: string,
+        value: any,
         metadata: EntityMetadata
-    ): T {
-        if (!entity) throw new TypeError(`Entity was not defined: ${entity}`);
-        if (!metadata) throw new TypeError(`Entity metadata was not defined: ${metadata}`);
-        return metadata.fields
-                       .map((fld) => ({[fld.propertyName]: entity[fld.columnName]}))
-                       .reduce((prev, curr) => Object.assign(prev, curr)) as T;
+    ): Promise<T[]> {
+        LOG.debug(`findAllByProperty: property = `, property);
+        LOG.debug(`findAllByProperty: metadata = `, metadata);
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        const columnName = this._getColumnName(property, fields);
+        LOG.debug(`findAllByProperty: tableName = `, tableName, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new PgEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new PgAndBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), columnName, value);
+        builder.setWhereFromQueryBuilder(where);
+        const [queryString, queryValues] = builder.build();
+        const result = await this._query(queryString, queryValues);
+        return this._toEntityArray<T, ID>(result, metadata);
     }
 
     private _getColumnName (propertyName: string, fields: readonly EntityField[]): string {
@@ -270,26 +342,115 @@ export class PgPersister implements Persister {
         value: any,
         metadata: EntityMetadata
     ): Promise<T | undefined> {
-        const {tableName} = metadata;
         const columnName = EntityUtils.getColumnName(property, metadata.fields);
-        const select = `SELECT *
-                        FROM ${tableName}
-                        WHERE ${columnName} = $1`;
-        const result = await this._query(select, [ value ]);
-        if (!result) throw new TypeError(`Result was not defined: ${result}`);
-        const rows = result.rows;
-        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
-        const row = first(rows);
-        if (!row) return undefined;
-        return this._toEntity<T, ID>(row, metadata);
+
+        LOG.debug(`findByProperty: columnName = `, columnName);
+        LOG.debug(`findByProperty: metadata = `, metadata);
+        const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
+        LOG.debug(`findByProperty: tableName = `, tableName, fields);
+        const mainIdColumnName : string = EntityUtils.getIdColumnName(metadata);
+        const builder = new PgEntitySelectQueryBuilder();
+        builder.setTablePrefix(this._tablePrefix);
+        builder.setFromTable(tableName);
+        builder.setGroupByColumn(mainIdColumnName);
+        builder.includeAllColumnsFromTable(tableName);
+        builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
+        builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
+        const where = new PgAndBuilder();
+        where.setColumnEquals(builder.getCompleteTableName(tableName), columnName, value);
+        builder.setWhereFromQueryBuilder(where);
+        const [queryString, queryValues] = builder.build();
+        const result = await this._query(queryString, queryValues);
+        return this._toFirstEntityOrUndefined<T, ID>(result, metadata);
     }
 
     private async _query (
         query: string,
         values: any[]
     ) : Promise<QueryResult<any>> {
+        query = PgQueryUtils.parametizeQuery(query);
         LOG.debug(`Query "${query}" with values: `, values);
-        return await this._pool.query(query, values);
+        const pool = this._pool;
+        if (!pool) throw new TypeError(`The persister has been destroyed`);
+        try {
+            return await pool.query(query, values);
+        } catch (err) {
+            LOG.debug(`Query failed: `, query, values);
+            throw TypeError(`Query failed: "${query}": ${err}`);
+        }
+    }
+
+    /**
+     * Turns the result set into an array of entities.
+     *
+     * @param result
+     * @param metadata
+     * @private
+     */
+    private _toEntityArray<T extends Entity, ID extends EntityIdTypes> (
+        result: QueryResult<any>,
+        metadata: EntityMetadata
+    ) : T[] {
+        if (!result) throw new TypeError(`Illegal result from query`);
+
+        if ( result.fields !== undefined ) LOG.debug(`result.fields = `, result.fields);
+        if ( result.oid !== undefined ) LOG.debug(`result.oid = `, result.oid);
+        if ( result.command !== undefined ) LOG.debug(`result.command = `, result.command);
+        if ( result.rowCount !== undefined ) LOG.debug(`result.rowCount = `, result.rowCount);
+
+        if (!result.rows) throw new TypeError(`Illegal result rows from query`);
+        LOG.debug(`_toEntityArray: result.rows = `, result.rows);
+        return map(
+            result.rows,
+            (row: any) => {
+                if (!row) throw new TypeError(`Unexpected illegal row: ${row}`);
+                return EntityUtils.toEntity<T, ID>(row, metadata, this._metadataManager);
+            }
+        );
+    }
+
+    /**
+     * Turns the result set into single entity, and returns `undefined` if
+     * no entity was found.
+     *
+     * @param result
+     * @param metadata
+     * @private
+     */
+    private _toFirstEntityOrUndefined<T extends Entity, ID extends EntityIdTypes> (
+        result: QueryResult<any>,
+        metadata: EntityMetadata
+    ) : T | undefined {
+        if (!result) throw new TypeError(`Result was not defined: ${result}`);
+
+        if ( result.fields !== undefined ) LOG.debug(`result.fields = `, result.fields);
+        if ( result.oid !== undefined ) LOG.debug(`result.oid = `, result.oid);
+        if ( result.command !== undefined ) LOG.debug(`result.command = `, result.command);
+        if ( result.rowCount !== undefined ) LOG.debug(`result.rowCount = `, result.rowCount);
+
+        const rows = result.rows;
+        if (!rows) throw new TypeError(`Result rows was not defined: ${rows}`);
+        const row = first(rows);
+        if (!row) return undefined;
+        LOG.debug(`_toFirstEntityOrUndefined: row = `, row);
+        return EntityUtils.toEntity<T, ID>(row, metadata, this._metadataManager);
+    }
+
+    /**
+     * Turns the result set into single entity, and fails if cannot do that.
+     *
+     * @param result
+     * @param metadata
+     * @private
+     */
+    private _toFirstEntityOrFail<T extends Entity, ID extends EntityIdTypes> (
+        result: QueryResult<any>,
+        metadata: EntityMetadata
+    ) : T {
+        const item = this._toFirstEntityOrUndefined<T, ID>(result, metadata);
+        if (item === undefined) throw new TypeError(`Result was not found`);
+        LOG.debug(`_toFirstEntityOrFail: item = `, item);
+        return item;
     }
 
 }

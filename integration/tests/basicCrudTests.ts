@@ -21,7 +21,7 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
         }
 
         @Id()
-        @Column('foo_id')
+        @Column('foo_id', 'BIGINT')
         public fooId ?: string;
 
         @Column('foo_name')
@@ -40,7 +40,7 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
         }
 
         @Id()
-        @Column('bar_id')
+        @Column('bar_id', 'BIGINT')
         public barId ?: string;
 
         @Column('bar_name')

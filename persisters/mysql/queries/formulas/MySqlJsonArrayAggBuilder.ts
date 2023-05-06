@@ -1,7 +1,10 @@
 // Copyright (c) 2023. Heusala Group Oy <info@heusalagroup.fi>. All rights reserved.
 
-import { QueryBuilder } from "./QueryBuilder";
+import { QueryBuilder } from "../../../types/QueryBuilder";
 
+/**
+ * This generates formulas like `JSON_ARRAYAGG(formula)`
+ */
 export class MySqlJsonArrayAggBuilder implements QueryBuilder {
 
     private _builder : QueryBuilder | undefined;

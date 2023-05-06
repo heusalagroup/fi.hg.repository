@@ -52,7 +52,7 @@ describe('JoinColumn', () => {
     });
 
     it('can set fields metadata for cart property', () => {
-        const expectedField : EntityField = createEntityField("cart","cart_id", false, EntityFieldType.JOINED_ENTITY);
+        const expectedField : EntityField = createEntityField("cart","cart_id", undefined, false, EntityFieldType.JOINED_ENTITY);
         expect(metadata.fields).toBeArray();
         expect(metadata.fields).toContainEqual(expectedField);
     });
