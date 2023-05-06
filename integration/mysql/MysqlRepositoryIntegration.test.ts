@@ -15,7 +15,7 @@ export const MYSQL_HOSTNAME          : string   = parseNonEmptyString(process?.e
 export const MYSQL_USERNAME          : string   = parseNonEmptyString(process?.env?.TEST_MYSQL_USERNAME)          ?? 'hg';
 export const MYSQL_PASSWORD          : string   = parseNonEmptyString(process?.env?.TEST_MYSQL_PASSWORD)          ?? '';
 export const MYSQL_DATABASE          : string   = parseNonEmptyString(process?.env?.TEST_MYSQL_DATABASE)          ?? 'hg';
-export const MYSQL_TABLE_PREFIX      : string   = parseNonEmptyString(process?.env?.TEST_MYSQL_TABLE_PREFIX)      ?? '';
+export const MYSQL_TABLE_PREFIX      : string   = parseNonEmptyString(process?.env?.TEST_MYSQL_TABLE_PREFIX)      ?? 'prefix_';
 export const MYSQL_CHARSET           : string   = parseNonEmptyString(process?.env?.TEST_MYSQL_CHARSET )          ?? 'LATIN1_SWEDISH_CI';
 
 export const INTEGRATION_TESTS_ENABLED : boolean = TEST_SCOPES.includes('integration') && !!MYSQL_PASSWORD;

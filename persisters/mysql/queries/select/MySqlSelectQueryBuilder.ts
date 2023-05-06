@@ -165,11 +165,11 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
         const leftJoinValues = map(this._leftJoinValues, (f) => f());
         return [
             ...fieldValues,
-            ...( this._mainTableName ? [this._mainTableName] : []),
+            ...( this._mainTableName ? [this.getCompleteTableName(this._mainTableName)] : []),
             ...leftJoinValues,
             ...( this._where ? this._where.buildQueryValues() : []),
             ...( this._mainTableName && this._mainIdColumnName ? [
-                this._mainTableName,
+                this.getCompleteTableName(this._mainTableName),
                 this._mainIdColumnName
             ] : [])
         ];
@@ -178,11 +178,11 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
     public getQueryValueFactories (): (() => any)[] {
         return [
             ...this._fieldValues,
-            ...( this._mainTableName ? [() => this._mainTableName] : []),
+            ...( this._mainTableName ? [() => this._mainTableName ? this.getCompleteTableName(this._mainTableName) : this._mainTableName] : []),
             ...this._leftJoinValues,
             ...( this._where ? this._where.getQueryValueFactories() : []),
             ...( this._mainTableName && this._mainIdColumnName ? [
-                () => this._mainTableName,
+                () => this._mainTableName ? this.getCompleteTableName(this._mainTableName) : this._mainTableName,
                 () => this._mainIdColumnName
             ] : [])
         ]

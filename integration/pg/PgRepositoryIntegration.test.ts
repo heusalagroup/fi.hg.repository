@@ -17,7 +17,7 @@ export const POSTGRES_HOSTNAME          : string   = parseNonEmptyString(process
 export const POSTGRES_USERNAME          : string   = parseNonEmptyString(process?.env?.TEST_POSTGRES_USERNAME)          ?? 'hg';
 export const POSTGRES_PASSWORD          : string   = parseNonEmptyString(process?.env?.TEST_POSTGRES_PASSWORD)          ?? '';
 export const POSTGRES_DATABASE          : string   = parseNonEmptyString(process?.env?.TEST_POSTGRES_DATABASE)          ?? 'hg';
-export const POSTGRES_TABLE_PREFIX      : string   = parseNonEmptyString(process?.env?.TEST_POSTGRES_TABLE_PREFIX)      ?? '';
+export const POSTGRES_TABLE_PREFIX      : string   = parseNonEmptyString(process?.env?.TEST_POSTGRES_TABLE_PREFIX)      ?? 'prefix_';
 export const POSTGRES_CHARSET           : string   = parseNonEmptyString(process?.env?.TEST_POSTGRES_CHARSET )          ?? '';
 export const POSTGRES_SSL               : boolean | undefined   = ['1', 'TRUE', 'ENABLED', 'ON'].includes((parseNonEmptyString(process?.env?.TEST_POSTGRES_SSL ) ?? '').toUpperCase());
 
@@ -42,7 +42,7 @@ export const INTEGRATION_TESTS_ENABLED : boolean = TEST_SCOPES.includes('integra
                 POSTGRES_PASSWORD,
                 POSTGRES_DATABASE,
                 POSTGRES_SSL,
-                undefined,
+                POSTGRES_TABLE_PREFIX,
                 undefined,
                 undefined,
                 undefined,

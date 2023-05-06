@@ -45,7 +45,7 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
     }
 
     public includeAllColumnsFromTable (tableName: string) {
-        this._fieldQueries.push(() => `${PgQueryUtils.quoteTableName(tableName)}.*`);
+        this._fieldQueries.push(() => `${PgQueryUtils.quoteTableName(this.getCompleteTableName(tableName))}.*`);
     }
 
     public includeColumnFromQueryBuilder (
@@ -107,7 +107,7 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
         sourceTableName : string,
         sourceColumnName : string
     ) {
-        this._leftJoinQueries.push(() => `LEFT JOIN ${PgQueryUtils.quoteTableName(fromTableName)} ON ${PgQueryUtils.quoteTableAndColumn(sourceTableName, sourceColumnName)} = ${PgQueryUtils.quoteTableAndColumn(fromTableName, fromColumnName)}`);
+        this._leftJoinQueries.push(() => `LEFT JOIN ${PgQueryUtils.quoteTableName(this.getCompleteTableName(fromTableName))} ON ${PgQueryUtils.quoteTableAndColumn(this.getCompleteTableName(sourceTableName), sourceColumnName)} = ${PgQueryUtils.quoteTableAndColumn(this.getCompleteTableName(fromTableName), fromColumnName)}`);
     }
 
     public build () : [string, any[]] {
@@ -119,7 +119,7 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
         const leftJoinQueries = map(this._leftJoinQueries, (f) => f());
         let query = `SELECT ${fieldQueries.join(', ')}`;
         if (this._mainTableName) {
-            query += ` FROM ${PgQueryUtils.quoteTableName(this._mainTableName)}`;
+            query += ` FROM ${PgQueryUtils.quoteTableName(this.getCompleteTableName(this._mainTableName))}`;
         }
         if (leftJoinQueries.length) {
             query += ` ${leftJoinQueries.join(' ')}`;
@@ -129,7 +129,7 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
         }
         if ( this._mainIdColumnName ) {
             if (!this._mainTableName) throw new TypeError(`No table initialized`);
-            query += ` GROUP BY ${PgQueryUtils.quoteTableAndColumn(this._mainTableName, this._mainIdColumnName)}`;
+            query += ` GROUP BY ${PgQueryUtils.quoteTableAndColumn(this.getCompleteTableName(this._mainTableName), this._mainIdColumnName)}`;
         }
         return query;
     }

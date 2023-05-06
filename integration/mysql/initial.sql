@@ -11,13 +11,13 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `foos`
+-- Table structure for table `prefix_foos`
 --
 
-DROP TABLE IF EXISTS `foos`;
+DROP TABLE IF EXISTS `prefix_foos`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-CREATE TABLE `foos` (
+CREATE TABLE `prefix_foos` (
                                   `foo_id` bigint(20) unsigned NOT NULL auto_increment,
                                   `foo_name` varchar(255) NOT NULL default '',
                                   PRIMARY KEY  (`foo_id`)
@@ -25,13 +25,13 @@ CREATE TABLE `foos` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `bars`
+-- Table structure for table `prefix_bars`
 --
 
-DROP TABLE IF EXISTS `bars`;
+DROP TABLE IF EXISTS `prefix_bars`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-CREATE TABLE `bars` (
+CREATE TABLE `prefix_bars` (
                                   `bar_id` bigint(20) unsigned NOT NULL auto_increment,
                                   `bar_name` varchar(255) NOT NULL default '',
                                   PRIMARY KEY  (`bar_id`)
@@ -39,13 +39,13 @@ CREATE TABLE `bars` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `carts`
+-- Table structure for table `prefix_carts`
 --
 
-DROP TABLE IF EXISTS `carts`;
+DROP TABLE IF EXISTS `prefix_carts`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-CREATE TABLE `carts` (
+CREATE TABLE `prefix_carts` (
                                   `cart_id` bigint(20) unsigned NOT NULL auto_increment,
                                   `cart_name` varchar(255) NOT NULL default '',
                                   PRIMARY KEY  (`cart_id`)
@@ -53,13 +53,13 @@ CREATE TABLE `carts` (
 SET character_set_client = @saved_cs_client;
 
 --
--- Table structure for table `cart_items`
+-- Table structure for table `prefix_cart_items`
 --
 
-DROP TABLE IF EXISTS `cart_items`;
+DROP TABLE IF EXISTS `prefix_cart_items`;
 SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = utf8;
-CREATE TABLE `cart_items` (
+CREATE TABLE `prefix_cart_items` (
                                   `cart_item_id` bigint(20) unsigned NOT NULL auto_increment,
                                   `cart_id` bigint(20) unsigned NOT NULL,
                                   `cart_item_name` varchar(255) NOT NULL default '',

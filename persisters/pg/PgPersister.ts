@@ -105,7 +105,7 @@ export class PgPersister implements Persister {
         const placeholders = Array.from({length: fields.length}, (_, i) => i + 1)
                                   .map((i) => `$${i}`)
                                   .reduce((prev, curr) => `${prev},${curr}`);
-        const insert = `INSERT INTO ${tableName}(${colNames})
+        const insert = `INSERT INTO ${this._tablePrefix}${tableName}(${colNames})
                         VALUES (${placeholders}) RETURNING *`;
         LOG.debug(`insert query = `, insert, values);
         const result = await this._query(insert, values);
@@ -119,7 +119,7 @@ export class PgPersister implements Persister {
         const fields = metadata.fields.filter((fld) => !this._isIdField(fld, metadata) && fld.fieldType !== EntityFieldType.JOINED_ENTITY);
         const setters = map(fields, (fld, idx) => `${fld.columnName}=$${idx + 2}`).reduce((prev, curr) => `${prev},${curr}`);
         const values = [ id ].concat( map(fields, (col) => (entity as any)[col.propertyName]) );
-        const update = `UPDATE ${tableName}
+        const update = `UPDATE ${this._tablePrefix}${tableName}
                         SET ${setters}
                         WHERE ${idColName} = $1 RETURNING *`;
         const result = await this._query(update, values);
@@ -131,7 +131,7 @@ export class PgPersister implements Persister {
         const idColName = this._getIdColumnName(metadata);
         const id = this._getId(entity, metadata);
         const sql = `DELETE
-                     FROM ${tableName}
+                     FROM ${this._tablePrefix}${tableName}
                      WHERE ${idColName} = $1 RETURNING *`;
         await this._query(sql, [ id ]);
     }
@@ -159,9 +159,6 @@ export class PgPersister implements Persister {
         LOG.debug(`findAllById: ids = `, ids);
         if (ids.length <= 0) throw new TypeError('At least one ID must be selected. Array was empty.');
         LOG.debug(`findAllById: metadata = `, metadata);
-
-        // const queryValues = [`${this._tablePrefix}${tableName}`, idColumnName, ids];
-        // LOG.debug(`findAllById: queryValues = `, queryValues);
 
         const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
         LOG.debug(`findAllById: tableName = `, tableName, fields);
@@ -248,7 +245,7 @@ export class PgPersister implements Persister {
 
     public async count<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<number> {
         const {tableName} = metadata;
-        const sql = `SELECT COUNT(*) as count FROM ${tableName}`;
+        const sql = `SELECT COUNT(*) as count FROM ${this._tablePrefix}${tableName}`;
         const result = await this._query(sql, []);
         if (!result) throw new TypeError('Could not get result for PgPersister.countByProperty');
         LOG.debug(`count: result = `, result);
@@ -269,7 +266,7 @@ export class PgPersister implements Persister {
     public async countByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<number> {
         const {tableName} = metadata;
         const columnName = EntityUtils.getColumnName(property, metadata.fields);
-        const sql = `SELECT COUNT(*) as count FROM ${tableName} WHERE ${columnName} = $1`;
+        const sql = `SELECT COUNT(*) as count FROM ${this._tablePrefix}${tableName} WHERE ${columnName} = $1`;
         const result = await this._query(sql, [value]);
         LOG.debug(`countByProperty: result = `, result);
         if (!result) throw new TypeError('Could not get result for PgPersister.countByProperty');
@@ -289,7 +286,7 @@ export class PgPersister implements Persister {
 
     public async deleteAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<void> {
         const {tableName} = metadata;
-        const sql = `DELETE FROM ${tableName}`;
+        const sql = `DELETE FROM ${this._tablePrefix}${tableName}`;
         await this._query(sql, []);
     }
 
@@ -318,7 +315,7 @@ export class PgPersister implements Persister {
         const {tableName} = metadata;
         const columnName = EntityUtils.getColumnName(property, metadata.fields);
         const select = `DELETE
-                        FROM ${tableName}
+                        FROM ${this._tablePrefix}${tableName}
                         WHERE ${columnName} = $1`;
         await this._query(select, [ value ]);
     }
@@ -327,7 +324,7 @@ export class PgPersister implements Persister {
         const {tableName} = metadata;
         const idColumnName = this._getIdColumnName(metadata);
         const query = `DELETE
-                        FROM ${tableName}
+                        FROM ${this._tablePrefix}${tableName}
                         WHERE ${idColumnName} = $1`;
         await this._query(query, [ id ]);
     }
