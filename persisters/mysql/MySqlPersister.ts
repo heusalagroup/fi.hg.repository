@@ -170,13 +170,13 @@ export class MySqlPersister implements Persister {
         const entityId = results?.insertId;
         LOG.debug(`entityId = ${JSON.stringify(entityId)}`);
         if (!entityId) {
-            throw new RepositoryError(RepositoryError.Code.CREATED_ENTITY_ID_NOT_FOUND, `Entity id could not be found for newly created entity`);
+            throw new RepositoryError(RepositoryError.Code.CREATED_ENTITY_ID_NOT_FOUND, `Entity id could not be found for newly created entity in table ${tableName}`);
         }
 
         const resultEntity: T | undefined = await this.findByLastInsertId(metadata);
         LOG.debug(`resultEntity = `, resultEntity);
         if ( !resultEntity ) {
-            throw new RepositoryEntityError(entityId, RepositoryEntityError.Code.ENTITY_NOT_FOUND, `Newly created entity not found: #${entityId}`);
+            throw new RepositoryEntityError(entityId, RepositoryEntityError.Code.ENTITY_NOT_FOUND, `Newly created entity not found in table ${tableName}: #${entityId}`);
         }
         return resultEntity;
     }
