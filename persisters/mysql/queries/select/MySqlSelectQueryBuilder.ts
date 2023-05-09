@@ -4,17 +4,23 @@ import { QueryBuilder } from "../../../types/QueryBuilder";
 import { SelectQueryBuilder } from "../../../types/SelectQueryBuilder";
 import { forEach } from "../../../../../core/functions/forEach";
 import { map } from "../../../../../core/functions/map";
+import { Sort } from "../../../../Sort";
+import { EntityField } from "../../../../types/EntityField";
+import { EntityUtils } from "../../../../EntityUtils";
+import { SortDirection } from "../../../../types/SortDirection";
 
 export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
 
     private _mainIdColumnName : string | undefined;
     private _mainTableName : string | undefined;
     private _tablePrefix : string = '';
-    private _fieldQueries : (() => string)[];
-    private _fieldValues : (() => any)[];
-    private _leftJoinQueries : (() => string)[];
-    private _leftJoinValues : (() => any)[];
+    private readonly _fieldQueries : (() => string)[];
+    private readonly _fieldValues : (() => any)[];
+    private readonly _leftJoinQueries : (() => string)[];
+    private readonly _leftJoinValues : (() => any)[];
     private _where : QueryBuilder | undefined;
+    private readonly _orderByQueries : (() => string)[];
+    private readonly _orderByValues : (() => any)[];
 
     public constructor () {
         this._mainIdColumnName = undefined;
@@ -25,6 +31,8 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
         this._fieldValues = [];
         this._leftJoinQueries = [];
         this._leftJoinValues = [];
+        this._orderByQueries = [];
+        this._orderByValues = [];
     }
 
     public setTablePrefix (prefix: string) {
@@ -117,6 +125,21 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
         this._mainIdColumnName = columnName;
     }
 
+    public setOrderByTableFields (
+        sort      : Sort,
+        tableName : string,
+        fields    : readonly EntityField[]
+    ) {
+        forEach(
+            sort.getSortOrders(),
+            (item) => {
+                this._orderByQueries.push( () => `??.??${ item.getDirection() === SortDirection.ASC ? '' : ' DESC'}` );
+                this._orderByValues.push( () => this.getCompleteTableName(tableName) );
+                this._orderByValues.push( () => EntityUtils.getColumnName(item.getProperty(), fields) );
+            }
+        );
+    }
+
     public getGroupByColumn (): string {
         if (!this._mainIdColumnName) throw new TypeError(`Group by has not been initialized yet`);
         return this._mainIdColumnName;
@@ -143,6 +166,7 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
     public buildQueryString () : string {
         const fieldQueries = map(this._fieldQueries, (f) => f());
         const leftJoinQueries = map(this._leftJoinQueries, (f) => f());
+        const orderBys = map(this._orderByQueries, (f) => f());
         let query = `SELECT ${fieldQueries.join(', ')}`;
         if (this._mainTableName) {
             query += ` FROM ??`;
@@ -154,8 +178,10 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
             query += ` WHERE ${this._where.buildQueryString()}`;
         }
         if ( this._mainIdColumnName ) {
-            if (!this._mainTableName) throw new TypeError(`No table initialized`);
             query += ` GROUP BY ??.??`;
+        }
+        if ( orderBys.length ) {
+            query += ` ORDER BY ${ orderBys.join(', ') }`;
         }
         return query;
     }
@@ -163,15 +189,17 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
     public buildQueryValues () : any[] {
         const fieldValues = map(this._fieldValues, (f) => f());
         const leftJoinValues = map(this._leftJoinValues, (f) => f());
+        const orderByValues = map(this._orderByValues, (f) => f());
         return [
             ...fieldValues,
             ...( this._mainTableName ? [this.getCompleteTableName(this._mainTableName)] : []),
             ...leftJoinValues,
             ...( this._where ? this._where.buildQueryValues() : []),
-            ...( this._mainTableName && this._mainIdColumnName ? [
+            ...( this._mainTableName ? [
                 this.getCompleteTableName(this._mainTableName),
                 this._mainIdColumnName
-            ] : [])
+            ] : []),
+            ...orderByValues
         ];
     }
 
@@ -184,7 +212,8 @@ export class MySqlSelectQueryBuilder implements SelectQueryBuilder {
             ...( this._mainTableName && this._mainIdColumnName ? [
                 () => this._mainTableName ? this.getCompleteTableName(this._mainTableName) : this._mainTableName,
                 () => this._mainIdColumnName
-            ] : [])
+            ] : []),
+            ...this._orderByValues
         ]
     }
 

@@ -10,12 +10,10 @@ import { forEach } from "../../../../../core/functions/forEach";
 import { EntityRelationManyToOne } from "../../../../types/EntityRelationManyToOne";
 import { find } from "../../../../../core/functions/find";
 import { EntityFieldType } from "../../../../types/EntityFieldType";
-import { PgArrayAggBuilder } from "../formulas/PgArrayAggBuilder";
-import { PgRowEntityBuilder } from "../formulas/PgRowEntityBuilder";
-import { PgUnnestBuilder } from "../formulas/PgUnnestBuilder";
 import { PgJsonAggBuilder } from "../formulas/PgJsonAggBuilder";
 import { PgJsonBuildObjectEntityBuilder } from "../formulas/PgJsonBuildObjectEntityBuilder";
 import { PgJsonIndexBuilder } from "../formulas/PgJsonIndexBuilder";
+import { Sort } from "../../../../Sort";
 
 export class PgEntitySelectQueryBuilder implements SelectQueryBuilder {
 
@@ -48,6 +46,7 @@ export class PgEntitySelectQueryBuilder implements SelectQueryBuilder {
     public includeColumnFromQueryBuilder (builder: QueryBuilder, asColumnName: string): void {
         return this._builder.includeColumnFromQueryBuilder(builder, asColumnName);
     }
+
     public includeFormulaByString (formula: string, asColumnName: string): void {
         return this._builder.includeFormulaByString(formula, asColumnName);
     }
@@ -70,6 +69,14 @@ export class PgEntitySelectQueryBuilder implements SelectQueryBuilder {
 
     public setGroupByColumn (columnName: string): void {
         return this._builder.setGroupByColumn(columnName);
+    }
+
+    public setOrderBy (
+        sort      : Sort,
+        tableName : string,
+        fields    : readonly EntityField[]
+    ): void {
+        return this._builder.setOrderByTableFields(sort, tableName, fields);
     }
 
     public getGroupByColumn (): string {

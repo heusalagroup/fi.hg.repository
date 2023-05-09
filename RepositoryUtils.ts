@@ -9,6 +9,7 @@ import { Entity, EntityIdTypes } from "./Entity";
 import { LogService } from "../core/LogService";
 import { LogLevel } from "../core/types/LogLevel";
 import { EntityField } from "./types/EntityField";
+import { Sort } from "./Sort";
 
 const LOG = LogService.createLogger('RepositoryUtils');
 
@@ -43,24 +44,26 @@ export class RepositoryUtils {
 
             const findAllByMethodName = `findAllBy${camelCasePropertyName}`;
             if (!has(proto, findAllByMethodName)) {
-                proto[findAllByMethodName] = function findAllByProperty (propertyValue: any) : Promise<T[]> {
+                proto[findAllByMethodName] = function findAllByProperty (propertyValue: any, sort?: Sort) : Promise<T[]> {
                     return RepositoryUtils._findAllByProperty<T, ID>(
                         this,
                         propertyName,
                         propertyValue,
-                        entityMetadata
+                        entityMetadata,
+                        sort
                     );
                 };
             }
 
             const findByMethodName = `findBy${camelCasePropertyName}`;
             if (!has(proto, findByMethodName)) {
-                proto[findByMethodName] = function findByProperty (propertyValue: any) : Promise<T | undefined> {
+                proto[findByMethodName] = function findByProperty (propertyValue: any, sort?: Sort) : Promise<T | undefined> {
                     return RepositoryUtils._findByProperty<T, ID>(
                         this,
                         propertyName,
                         propertyValue,
-                        entityMetadata
+                        entityMetadata,
+                        sort
                     );
                 };
             }
@@ -115,18 +118,22 @@ export class RepositoryUtils {
      * @param propertyName
      * @param propertyValue
      * @param entityMetadata
+     * @param sort
      */
     private static async _findAllByProperty<T extends Entity, ID extends EntityIdTypes> (
-        self           : CrudRepository<T, ID>,
-        propertyName   : string,
-        propertyValue  : any,
-        entityMetadata : EntityMetadata
+        self            : CrudRepository<T, ID>,
+        propertyName    : string,
+        propertyValue   : any,
+        entityMetadata  : EntityMetadata,
+        sort            : Sort | undefined
     ) : Promise<T[]> {
-
         const persister = self.__getPersister();
-
-        return await persister.findAllByProperty<T, ID>(propertyName, propertyValue, entityMetadata);
-
+        return await persister.findAllByProperty<T, ID>(
+            propertyName,
+            propertyValue,
+            entityMetadata,
+            sort
+        );
     }
 
     /**
@@ -136,18 +143,22 @@ export class RepositoryUtils {
      * @param propertyName
      * @param propertyValue
      * @param entityMetadata
+     * @param sort
      */
     private static async _findByProperty<T extends Entity, ID extends EntityIdTypes> (
         self           : CrudRepository<T, ID>,
         propertyName   : string,
         propertyValue  : any,
-        entityMetadata : EntityMetadata
+        entityMetadata : EntityMetadata,
+        sort           : Sort | undefined
     ) : Promise<T | undefined> {
-
         const persister = self.__getPersister();
-
-        return await persister.findByProperty<T, ID>(propertyName, propertyValue, entityMetadata);
-
+        return await persister.findByProperty<T, ID>(
+            propertyName,
+            propertyValue,
+            entityMetadata,
+            sort
+        );
     }
 
     /**

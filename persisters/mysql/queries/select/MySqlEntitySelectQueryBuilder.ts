@@ -12,6 +12,7 @@ import { forEach } from "../../../../../core/functions/forEach";
 import { EntityRelationManyToOne } from "../../../../types/EntityRelationManyToOne";
 import { find } from "../../../../../core/functions/find";
 import { EntityFieldType } from "../../../../types/EntityFieldType";
+import { Sort } from "../../../../Sort";
 
 export class MySqlEntitySelectQueryBuilder implements SelectQueryBuilder {
 
@@ -85,6 +86,14 @@ export class MySqlEntitySelectQueryBuilder implements SelectQueryBuilder {
 
     public setGroupByColumn (columnName: string): void {
         return this._builder.setGroupByColumn(columnName);
+    }
+
+    public setOrderBy (
+        sort      : Sort,
+        tableName : string,
+        fields    : readonly EntityField[]
+    ): void {
+        return this._builder.setOrderByTableFields(sort, tableName, fields);
     }
 
     public getGroupByColumn (): string {

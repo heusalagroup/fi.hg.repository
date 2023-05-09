@@ -3,6 +3,7 @@
 import { Entity, EntityIdTypes } from "../Entity";
 import { Persister } from "../Persister";
 import { EntityMetadata } from "./EntityMetadata";
+import { Sort } from "../Sort";
 
 export interface StaticRepository <T extends Entity, ID extends EntityIdTypes> {
 
@@ -30,19 +31,24 @@ export interface Repository<T extends Entity, ID extends EntityIdTypes> {
 
     existsById (id : ID): Promise<boolean>;
 
-    findAll (): Promise<T[]>;
+    findAll (sort?: Sort): Promise<T[]>;
 
-    findAllById (ids: readonly ID[]): Promise<T[]>;
+    findAllById (ids: readonly ID[], sort?: Sort): Promise<T[]>;
 
-    findById (id: ID): Promise<T | undefined>;
+    findById (id: ID, sort?: Sort): Promise<T | undefined>;
 
     /**
      *
      * @deprecated Use `Repository.findAllByPropertyName(value)` instead.
      * @param propertyName
      * @param value
+     * @param sort
      */
-    find (propertyName: string, value: any): Promise<T[]>;
+    find (
+        propertyName: string,
+        value: any,
+        sort?: Sort
+    ): Promise<T[]>;
 
     save (entity: T): Promise<T>;
 

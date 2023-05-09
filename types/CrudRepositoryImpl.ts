@@ -12,12 +12,12 @@ import { CrudRepository } from "../CrudRepository";
 import { LogService } from "../../core/LogService";
 import { LogLevel } from "../../core/types/LogLevel";
 import { KeyValuePairs } from "./KeyValuePairs";
+import { Sort } from "../Sort";
 
 const LOG = LogService.createLogger('CrudRepositoryImpl');
 
 export class CrudRepositoryImpl<T extends Entity, ID extends EntityIdTypes>
-    implements CrudRepository<T, ID>
-{
+    implements CrudRepository<T, ID> {
 
     public static setLogLevel (level: LogLevel) {
         LOG.setLogLevel(level);
@@ -56,24 +56,41 @@ export class CrudRepositoryImpl<T extends Entity, ID extends EntityIdTypes>
         return await this._persister.deleteById<T, ID>(id, this._entityMetadata);
     }
 
-    public async findAll (): Promise<T[]> {
+    public async findAll (
+        sort ?: Sort
+    ): Promise<T[]> {
         LOG.debug(`findAll`);
-        return await this._persister.findAll(this._entityMetadata);
+        return await this._persister.findAll(this._entityMetadata, sort);
     }
 
-    public async findAllById (ids: any[]): Promise<T[]> {
+    public async findAllById (
+        ids: any[],
+        sort ?: Sort
+    ) : Promise<T[]> {
         LOG.debug(`findAllById = `, ids);
-        return await this._persister.findAllById(ids, this._entityMetadata);
+        return await this._persister.findAllById(ids, this._entityMetadata, sort);
     }
 
-    public async findById (id: any): Promise<T | undefined> {
+    public async findById (
+        id: any,
+        sort ?: Sort
+    ): Promise<T | undefined> {
         LOG.debug(`findById = `, id);
-        return await this._persister.findById(id, this._entityMetadata);
+        return await this._persister.findById(id, this._entityMetadata, sort);
     }
 
-    public async find (propertyName: string, value: any): Promise<T[]> {
+    public async find (
+        propertyName: string,
+        value: any,
+        sort ?: Sort
+    ): Promise<T[]> {
         LOG.debug(`find = `, propertyName, value);
-        return await this._persister.findAllByProperty(propertyName, value, this._entityMetadata);
+        return await this._persister.findAllByProperty(
+            propertyName,
+            value,
+            this._entityMetadata,
+            sort
+        );
     }
 
     public async count (): Promise<number> {

@@ -19,6 +19,8 @@ import { LogService } from "../../../core/LogService";
 import { EntityUtils } from "../../EntityUtils";
 import { EntityField } from "../../types/EntityField";
 import { EntityRelationManyToOne } from "../../types/EntityRelationManyToOne";
+import { Sort } from "../../Sort";
+import { SortOrder } from "../../types/SortOrder";
 
 const LOG = LogService.createLogger('MemoryPersister');
 
@@ -170,22 +172,21 @@ export class MemoryPersister implements Persister {
     }
 
     public async findAll<T extends Entity, ID extends EntityIdTypes> (
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]> {
         const tableName = metadata.tableName;
         if(!has(this._data, tableName)) return [];
-
-        const items : T[] = this._prepareItemList(this._data[tableName].items, metadata, true);
-        LOG.debug(`findAll: returns: items 1: `, items);
-
+        const items : T[] = this._prepareItemList(this._data[tableName].items, metadata, true, sort);
         const ret : T[] = this._populateRelationsToList(items, metadata);
-        LOG.debug(`findAll: returns: items 2: `, ret);
+        LOG.debug(`findAll: returns: items 2: ${ret.length}`);
         return ret;
     }
 
     public async findAllById<T extends Entity, ID extends EntityIdTypes> (
         ids: readonly ID[],
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]> {
         return this._populateRelationsToList(
             this._prepareItemList(
@@ -194,7 +195,8 @@ export class MemoryPersister implements Persister {
                     metadata.tableName
                 ),
                 metadata,
-                true
+                true,
+                sort
             ),
             metadata
         );
@@ -203,7 +205,8 @@ export class MemoryPersister implements Persister {
     public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (
         property: string,
         value: any,
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]> {
         return this._populateRelationsToList(
             this._prepareItemList(
@@ -212,7 +215,8 @@ export class MemoryPersister implements Persister {
                     metadata.tableName
                 ),
                 metadata,
-                true
+                true,
+                sort
             ),
             metadata
         );
@@ -223,10 +227,12 @@ export class MemoryPersister implements Persister {
      *
      * @param id The entity primary ID
      * @param metadata The entity metadata
+     * @param sort
      */
     public async findById<T extends Entity, ID extends EntityIdTypes> (
         id: ID,
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined> {
         const item = this._findItem(
             (item: MemoryItem) : boolean => item.id === id,
@@ -239,14 +245,18 @@ export class MemoryPersister implements Persister {
     public async findByProperty<T extends Entity, ID extends EntityIdTypes> (
         property: string,
         value: any,
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined> {
         const item = this._findItem(
             (item: MemoryItem) : boolean => has(item.value, property) ? (item.value as any)[property] === value : false,
             metadata.tableName
         );
         if (!item) return undefined;
-        return this._populateRelations(this._prepareItem<T>(item, metadata, true), metadata);
+        return this._populateRelations(
+            this._prepareItem<T>(item, metadata, true),
+            metadata
+        );
     }
 
     public async insert<T extends Entity, ID extends EntityIdTypes> (
@@ -364,14 +374,21 @@ export class MemoryPersister implements Persister {
      * @param items
      * @param metadata
      * @param simplify If true, any external relations will be nullified.
+     * @param sort
      * @private
      */
     private _prepareItemList<T extends Entity> (
-        items: readonly MemoryItem[],
-        metadata: EntityMetadata,
-        simplify: boolean
+        items    : readonly MemoryItem[],
+        metadata : EntityMetadata,
+        simplify : boolean,
+        sort     : Sort | undefined
     ) : T[] {
-        return map(items, (item: MemoryItem) : T => this._prepareItem(item, metadata, simplify));
+        const sortFunction = sort ? sort.getSortFunction() : undefined;
+        const list = map(items, (item: MemoryItem) : T => this._prepareItem(item, metadata, simplify));
+        if (sortFunction) {
+            list.sort(sortFunction);
+        }
+        return list;
     }
 
     /**
@@ -483,7 +500,8 @@ export class MemoryPersister implements Persister {
                                 const preparedEntities = this._prepareItemList(
                                     linkedEntities,
                                     mappedToMetadata,
-                                    true
+                                    true,
+                                    undefined
                                 );
                                 LOG.debug(`_populateOneToManyRelations: prepared: linkedEntities = `, linkedEntities);
                                 (entity as any)[propertyName] = preparedEntities;
@@ -592,3 +610,4 @@ export class MemoryPersister implements Persister {
     }
 
 }
+

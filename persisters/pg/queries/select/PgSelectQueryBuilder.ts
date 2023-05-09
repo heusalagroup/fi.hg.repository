@@ -5,17 +5,23 @@ import { SelectQueryBuilder } from "../../../types/SelectQueryBuilder";
 import { forEach } from "../../../../../core/functions/forEach";
 import { PgQueryUtils } from "../../PgQueryUtils";
 import { map } from "../../../../../core/functions/map";
+import { Sort } from "../../../../Sort";
+import { SortOrder } from "../../../../types/SortOrder";
+import { EntityUtils } from "../../../../EntityUtils";
+import { EntityField } from "../../../../types/EntityField";
+import { SortDirection } from "../../../../types/SortDirection";
 
 export class PgSelectQueryBuilder implements SelectQueryBuilder {
 
     private _mainIdColumnName : string | undefined;
     private _mainTableName : string | undefined;
     private _tablePrefix : string = '';
-    private _fieldQueries : (() => string)[];
-    private _fieldValues : (() => any)[];
-    private _leftJoinQueries : (() => string)[];
-    private _leftJoinValues : (() => any)[];
+    private readonly _fieldQueries : (() => string)[];
+    private readonly _fieldValues : (() => any)[];
+    private readonly _leftJoinQueries : (() => string)[];
+    private readonly _leftJoinValues : (() => any)[];
     private _where : QueryBuilder | undefined;
+    private _orderBy : (() => string)[];
 
     public constructor () {
         this._mainIdColumnName = undefined;
@@ -26,6 +32,7 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
         this._fieldValues = [];
         this._leftJoinQueries = [];
         this._leftJoinValues = [];
+        this._orderBy = [];
     }
 
     public setTablePrefix (prefix: string) {
@@ -96,6 +103,24 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
         this._mainIdColumnName = columnName;
     }
 
+    public setOrderByTableFields (
+        sort      : Sort,
+        tableName : string,
+        fields    : readonly EntityField[]
+    ) {
+        const orders = sort.getSortOrders();
+        this._orderBy = orders?.length ? [
+            () => map(
+                orders,
+                (item: SortOrder) => `${
+                    PgQueryUtils.quoteTableAndColumn(
+                        this.getCompleteTableName(tableName),
+                        EntityUtils.getColumnName(item.getProperty(), fields)
+                    )
+                }${item.getDirection() === SortDirection.ASC ? ' ASC' : ' DESC'}`
+            ).join(', ')] : [];
+    }
+
     public getGroupByColumn (): string {
         if (!this._mainIdColumnName) throw new TypeError(`Group by has not been initialized yet`);
         return this._mainIdColumnName;
@@ -117,6 +142,7 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
     public buildQueryString () : string {
         const fieldQueries = map(this._fieldQueries, (f) => f());
         const leftJoinQueries = map(this._leftJoinQueries, (f) => f());
+        const orderBys = map(this._orderBy, (f) => f());
         let query = `SELECT ${fieldQueries.join(', ')}`;
         if (this._mainTableName) {
             query += ` FROM ${PgQueryUtils.quoteTableName(this.getCompleteTableName(this._mainTableName))}`;
@@ -130,6 +156,9 @@ export class PgSelectQueryBuilder implements SelectQueryBuilder {
         if ( this._mainIdColumnName ) {
             if (!this._mainTableName) throw new TypeError(`No table initialized`);
             query += ` GROUP BY ${PgQueryUtils.quoteTableAndColumn(this.getCompleteTableName(this._mainTableName), this._mainIdColumnName)}`;
+        }
+        if ( orderBys.length ) {
+            query += ` ORDER BY ${ orderBys.join(', ') }`;
         }
         return query;
     }

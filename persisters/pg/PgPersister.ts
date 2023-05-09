@@ -22,6 +22,7 @@ import { PgAndBuilder } from "./queries/formulas/PgAndBuilder";
 import { PgQueryUtils } from "./PgQueryUtils";
 import { PgOid } from "./PgOid";
 import { PgOidParserUtils } from "./PgOidParserUtils";
+import { Sort } from "../../Sort";
 
 const LOG = LogService.createLogger('PgPersister');
 
@@ -136,7 +137,10 @@ export class PgPersister implements Persister {
         await this._query(sql, [ id ]);
     }
 
-    public async findAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<T[]> {
+    public async findAll<T extends Entity, ID extends EntityIdTypes> (
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T[]> {
         LOG.debug(`findAll: metadata = `, metadata);
         const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
         LOG.debug(`findAll: tableName = `, tableName, fields);
@@ -144,6 +148,9 @@ export class PgPersister implements Persister {
         const builder = new PgEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeAllColumnsFromTable(tableName);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
@@ -154,7 +161,11 @@ export class PgPersister implements Persister {
         return this._toEntityArray(result, metadata);
     }
 
-    public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<T[]> {
+    public async findAllById<T extends Entity, ID extends EntityIdTypes> (
+        ids: readonly ID[],
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T[]> {
 
         LOG.debug(`findAllById: ids = `, ids);
         if (ids.length <= 0) throw new TypeError('At least one ID must be selected. Array was empty.');
@@ -166,6 +177,9 @@ export class PgPersister implements Persister {
         const builder = new PgEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeAllColumnsFromTable(tableName);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
@@ -180,7 +194,11 @@ export class PgPersister implements Persister {
         return this._toEntityArray<T, ID>(result, metadata);
     }
 
-    public async findById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<T | undefined> {
+    public async findById<T extends Entity, ID extends EntityIdTypes> (
+        id: ID,
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T | undefined> {
         LOG.debug(`findById: id = `, id);
         LOG.debug(`findById: metadata = `, metadata);
         const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
@@ -189,6 +207,9 @@ export class PgPersister implements Persister {
         const builder = new PgEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeAllColumnsFromTable(tableName);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
@@ -204,7 +225,8 @@ export class PgPersister implements Persister {
     public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (
         property: string,
         value: any,
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]> {
         LOG.debug(`findAllByProperty: property = `, property);
         LOG.debug(`findAllByProperty: metadata = `, metadata);
@@ -215,6 +237,9 @@ export class PgPersister implements Persister {
         const builder = new PgEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeAllColumnsFromTable(tableName);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
@@ -337,7 +362,8 @@ export class PgPersister implements Persister {
     public async findByProperty<T extends Entity, ID extends EntityIdTypes> (
         property: string,
         value: any,
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined> {
         const columnName = EntityUtils.getColumnName(property, metadata.fields);
 
@@ -349,6 +375,9 @@ export class PgPersister implements Persister {
         const builder = new PgEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeAllColumnsFromTable(tableName);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);

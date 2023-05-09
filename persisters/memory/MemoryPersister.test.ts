@@ -188,10 +188,10 @@ describe('MemoryPersister', () => {
 
         describe('#findAll', () => {
             it('can detect there is no matches', async () => {
-                expect( await persister.findAll(fooMetadata) ).toStrictEqual([]);
+                expect( await persister.findAll(fooMetadata, undefined) ).toStrictEqual([]);
             });
             it('can detect there is three matches', async () => {
-                const list : BarEntity[] = await persister.findAll(barMetadata);
+                const list : BarEntity[] = await persister.findAll(barMetadata, undefined);
                 expect(list?.length).toBe(3);
                 expect(list[0].barId).toBe(barEntity1.barId);
                 expect(list[1].barId).toBe(barEntity2.barId);
@@ -205,11 +205,11 @@ describe('MemoryPersister', () => {
         describe('#findAllById', () => {
             it('can detect there is no matches', async () => {
                 expect(barEntity2.barId).toBeDefined();
-                expect( await persister.findAllById([barEntity2.barId as string], fooMetadata) ).toStrictEqual([]);
+                expect( await persister.findAllById([barEntity2.barId as string], fooMetadata, undefined) ).toStrictEqual([]);
             });
             it('can detect there is one match', async () => {
                 expect(barEntity2.barId).toBeDefined();
-                const list : BarEntity[] = await persister.findAllById([barEntity2.barId as string], barMetadata);
+                const list : BarEntity[] = await persister.findAllById([barEntity2.barId as string], barMetadata, undefined);
                 expect(list?.length).toBe(1);
                 expect(list[0].barId).toBe(barEntity2.barId);
                 expect(list[0].barName).toBe(barEntity2.barName);
@@ -218,10 +218,10 @@ describe('MemoryPersister', () => {
 
         describe('#findAllByProperty', () => {
             it('can detect there is no matches', async () => {
-                expect( await persister.findAllByProperty('barName', 'Bar 456', fooMetadata) ).toStrictEqual([]);
+                expect( await persister.findAllByProperty('barName', 'Bar 456', fooMetadata, undefined) ).toStrictEqual([]);
             });
             it('can detect there is one match', async () => {
-                const list : BarEntity[] = await persister.findAllByProperty('barName', 'Bar 456', barMetadata);
+                const list : BarEntity[] = await persister.findAllByProperty('barName', 'Bar 456', barMetadata, undefined);
                 expect(list?.length).toBe(1);
                 expect(list[0].barId).toBe(barEntity2.barId);
                 expect(list[0].barName).toBe(barEntity2.barName);
@@ -231,11 +231,11 @@ describe('MemoryPersister', () => {
         describe('#findById', () => {
             it('can detect there is no matches', async () => {
                 expect(barEntity2.barId).toBeDefined();
-                expect( await persister.findById(barEntity2.barId as string, fooMetadata) ).toBeUndefined();
+                expect( await persister.findById(barEntity2.barId as string, fooMetadata, undefined) ).toBeUndefined();
             });
             it('can detect there is one match', async () => {
                 expect(barEntity2.barId).toBeDefined();
-                const item : BarEntity | undefined = await persister.findById(barEntity2.barId as string, barMetadata);
+                const item : BarEntity | undefined = await persister.findById(barEntity2.barId as string, barMetadata, undefined);
                 expect(item).toBeDefined();
                 expect(item?.barId).toBe(barEntity2.barId);
                 expect(item?.barName).toBe(barEntity2.barName);
@@ -244,10 +244,10 @@ describe('MemoryPersister', () => {
 
         describe('#findByProperty', () => {
             it('can detect there is no matches', async () => {
-                expect( await persister.findByProperty('barName', 'Bar 456', fooMetadata) ).toBeUndefined();
+                expect( await persister.findByProperty('barName', 'Bar 456', fooMetadata, undefined) ).toBeUndefined();
             });
             it('can detect there is one match', async () => {
-                const item : BarEntity | undefined = await persister.findByProperty('barName', 'Bar 456', barMetadata);
+                const item : BarEntity | undefined = await persister.findByProperty('barName', 'Bar 456', barMetadata, undefined);
                 expect(item).toBeDefined();
                 expect(item?.barId).toBe(barEntity2.barId);
                 expect(item?.barName).toBe(barEntity2.barName);
@@ -280,7 +280,7 @@ describe('MemoryPersister', () => {
             it('cannot update an item without update call', async () => {
                 expect(barEntity2.barId).toBeDefined();
                 barEntity2.barName = 'Hello world';
-                const entity : BarEntity | undefined = await persister.findById( barEntity2.barId as string, barMetadata );
+                const entity : BarEntity | undefined = await persister.findById( barEntity2.barId as string, barMetadata, undefined );
                 expect(entity).toBeDefined();
                 expect(entity?.barName).toBe('Bar 456');
                 expect(entity?.barId).toBe(barEntity2.barId);

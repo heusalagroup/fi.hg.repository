@@ -30,6 +30,7 @@ import { PersisterMetadataManagerImpl } from "../../PersisterMetadataManagerImpl
 import { EntityFieldType } from "../../types/EntityFieldType";
 import { MySqlEntitySelectQueryBuilder } from "./queries/select/MySqlEntitySelectQueryBuilder";
 import { MySqlAndBuilder } from "./queries/formulas/MySqlAndBuilder";
+import { Sort } from "../../Sort";
 
 export type QueryResultPair = [any, readonly FieldInfo[] | undefined];
 
@@ -173,7 +174,7 @@ export class MySqlPersister implements Persister {
             throw new RepositoryError(RepositoryError.Code.CREATED_ENTITY_ID_NOT_FOUND, `Entity id could not be found for newly created entity in table ${tableName}`);
         }
 
-        const resultEntity: T | undefined = await this.findByLastInsertId(metadata);
+        const resultEntity: T | undefined = await this.findByLastInsertId(metadata, Sort.by(metadata.idPropertyName));
         LOG.debug(`resultEntity = `, resultEntity);
         if ( !resultEntity ) {
             throw new RepositoryEntityError(entityId, RepositoryEntityError.Code.ENTITY_NOT_FOUND, `Newly created entity not found in table ${tableName}: #${entityId}`);
@@ -225,7 +226,7 @@ export class MySqlPersister implements Persister {
 
         await this._query(queryString, queryValues);
 
-        const resultEntity: T | undefined = await this.findById(id, metadata);
+        const resultEntity: T | undefined = await this.findById(id, metadata, Sort.by(metadata.idPropertyName));
         LOG.debug(`resultEntity = `, resultEntity);
 
         if (resultEntity) {
@@ -307,7 +308,8 @@ export class MySqlPersister implements Persister {
         ID extends EntityIdTypes
     >(
         id: ID,
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined> {
         LOG.debug(`findById: id = `, id);
         LOG.debug(`findById: metadata = `, metadata);
@@ -319,6 +321,9 @@ export class MySqlPersister implements Persister {
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
         builder.setGroupByColumn(mainIdColumnName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.includeEntityFields(tableName, fields);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
         builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
@@ -340,7 +345,8 @@ export class MySqlPersister implements Persister {
         T extends Entity,
         ID extends EntityIdTypes
     >(
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined> {
         LOG.debug(`findByIdLastInsertId: metadata = `, metadata);
 
@@ -352,6 +358,9 @@ export class MySqlPersister implements Persister {
         builder.setFromTable(tableName);
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeEntityFields(tableName, fields);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
         builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
 
@@ -376,7 +385,8 @@ export class MySqlPersister implements Persister {
     > (
         property : string,
         value    : any,
-        metadata : EntityMetadata
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined> {
         LOG.debug(`findByProperty: property = `, property);
         LOG.debug(`findByProperty: value = `, value);
@@ -389,6 +399,9 @@ export class MySqlPersister implements Persister {
         const builder = new MySqlEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeEntityFields(tableName, fields);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
@@ -408,7 +421,8 @@ export class MySqlPersister implements Persister {
 
     public async findAll<T extends Entity,
         ID extends EntityIdTypes>(
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]> {
         LOG.debug(`findAll: metadata = `, metadata);
         const {tableName, fields, oneToManyRelations, manyToOneRelations} = metadata;
@@ -417,6 +431,9 @@ export class MySqlPersister implements Persister {
         const builder = new MySqlEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeEntityFields(tableName, fields);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
@@ -431,7 +448,8 @@ export class MySqlPersister implements Persister {
     public async findAllById<T extends Entity,
         ID extends EntityIdTypes>(
         ids: readonly ID[],
-        metadata: EntityMetadata
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]> {
         LOG.debug(`findAllById: ids = `, ids);
         if (ids.length <= 0) throw new TypeError('At least one ID must be selected. Array was empty.');
@@ -443,6 +461,9 @@ export class MySqlPersister implements Persister {
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
         builder.setGroupByColumn(mainIdColumnName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.includeEntityFields(tableName, fields);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);
         builder.setManyToOneRelations(manyToOneRelations, this._metadataManager, fields);
@@ -462,7 +483,8 @@ export class MySqlPersister implements Persister {
     >(
         property : string,
         value    : any,
-        metadata : EntityMetadata
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]> {
         LOG.debug(`findAllByProperty: property = `, property);
         LOG.debug(`findAllByProperty: value = `, value);
@@ -474,6 +496,9 @@ export class MySqlPersister implements Persister {
         const builder = new MySqlEntitySelectQueryBuilder();
         builder.setTablePrefix(this._tablePrefix);
         builder.setFromTable(tableName);
+        if (sort) {
+            builder.setOrderBy(sort, tableName, fields);
+        }
         builder.setGroupByColumn(mainIdColumnName);
         builder.includeEntityFields(tableName, fields);
         builder.setOneToManyRelations(oneToManyRelations, this._metadataManager);

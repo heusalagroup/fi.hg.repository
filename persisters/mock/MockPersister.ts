@@ -5,6 +5,7 @@ import { Entity, EntityIdTypes } from "../../Entity";
 import { EntityMetadata } from "../../types/EntityMetadata";
 import { first } from "../../../core/functions/first";
 import { isArray } from "../../../core/types/Array";
+import { Sort } from "../../Sort";
 
 /**
  * This persister implements every method but doesn't really do anything.
@@ -41,23 +42,44 @@ export class MockPersister implements Persister {
         return false;
     }
 
-    public async findAll<T extends Entity, ID extends EntityIdTypes> (metadata: EntityMetadata): Promise<T[]> {
+    public async findAll<T extends Entity, ID extends EntityIdTypes> (
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T[]> {
         return [];
     }
 
-    public async findAllById<T extends Entity, ID extends EntityIdTypes> (ids: readonly ID[], metadata: EntityMetadata): Promise<T[]> {
+    public async findAllById<T extends Entity, ID extends EntityIdTypes> (
+        ids: readonly ID[],
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T[]> {
         return [];
     }
 
-    public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<T[]> {
+    public async findAllByProperty<T extends Entity, ID extends EntityIdTypes> (
+        property: string,
+        value: any,
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T[]> {
         return [];
     }
 
-    public async findById<T extends Entity, ID extends EntityIdTypes> (id: ID, metadata: EntityMetadata): Promise<T | undefined> {
+    public async findById<T extends Entity, ID extends EntityIdTypes> (
+        id: ID,
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T | undefined> {
         return undefined;
     }
 
-    public async findByProperty<T extends Entity, ID extends EntityIdTypes> (property: string, value: any, metadata: EntityMetadata): Promise<T | undefined> {
+    public async findByProperty<T extends Entity, ID extends EntityIdTypes> (
+        property: string,
+        value: any,
+        metadata: EntityMetadata,
+        sort     : Sort | undefined
+    ): Promise<T | undefined> {
         return undefined;
     }
 

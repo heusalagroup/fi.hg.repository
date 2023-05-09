@@ -39,18 +39,16 @@ export class EntityUtils {
 
     public static getColumnName (
         propertyName : string,
-        fields       : EntityField[]
+        fields       : readonly EntityField[]
     ): string {
         const field = fields.find((x: EntityField) => x.propertyName === propertyName);
-        if (field) {
-            return field.columnName;
-        }
-        throw new RepositoryError(RepositoryError.Code.COLUMN_NAME_NOT_FOUND, `Column name not found for property: "${propertyName}"`);
+        if ( !field ) throw new RepositoryError(RepositoryError.Code.COLUMN_NAME_NOT_FOUND, `Column name not found for property: "${propertyName}"`);
+        return field.columnName;
     }
 
     public static getPropertyName (
         columnName : string,
-        fields     : EntityField[]
+        fields     : readonly EntityField[]
     ): string {
         const field = fields.find((x: EntityField) => x.columnName === columnName);
         if (field) {

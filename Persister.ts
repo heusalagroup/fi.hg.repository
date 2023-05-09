@@ -3,6 +3,7 @@
 
 import { EntityMetadata } from "./types/EntityMetadata";
 import { Entity, EntityIdTypes } from "./Entity";
+import { Sort } from "./Sort";
 
 export interface Persister {
 
@@ -67,29 +68,34 @@ export interface Persister {
 
 
     findAll<T extends Entity, ID extends EntityIdTypes> (
-        metadata : EntityMetadata
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]>;
 
     findAllById<T extends Entity, ID extends EntityIdTypes> (
         ids      : readonly ID[],
-        metadata : EntityMetadata
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]>
 
     findAllByProperty<T extends Entity, ID extends EntityIdTypes> (
         property : string,
         value    : any,
-        metadata : EntityMetadata
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T[]>;
 
     findById<T extends Entity, ID extends EntityIdTypes> (
         id       : ID,
-        metadata : EntityMetadata
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined>;
 
     findByProperty<T extends Entity, ID extends EntityIdTypes> (
         property : string,
         value    : any,
-        metadata : EntityMetadata
+        metadata : EntityMetadata,
+        sort     : Sort | undefined
     ): Promise<T | undefined>;
 
     insert<T extends Entity, ID extends EntityIdTypes> (

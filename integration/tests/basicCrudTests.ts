@@ -7,6 +7,7 @@ import { RepositoryTestContext } from "../types/RepositoryTestContext";
 import { Persister } from "../../Persister";
 import { createCrudRepositoryWithPersister } from "../../CrudRepository";
 import { find } from "../../../core/functions/find";
+import { Sort } from "../../Sort";
 
 export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
@@ -50,14 +51,14 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
     interface FooRepository extends Repository<FooEntity, string> {
 
-        findAllByFooName(name: string) : Promise<FooEntity[]>;
-        findByFooName (name: string): Promise<FooEntity | undefined>;
+        findAllByFooName(name: string, sort?: Sort) : Promise<FooEntity[]>;
+        findByFooName (name: string, sort?: Sort): Promise<FooEntity | undefined>;
         deleteAllByFooName (name: string): Promise<void>;
         existsByFooName (name : string): Promise<boolean>;
         countByFooName (name: string) : Promise<number>;
 
-        findAllByFooId (ids: readonly string[]) : Promise<FooEntity[]>;
-        findByFooId (id: string): Promise<FooEntity | undefined>;
+        findAllByFooId (ids: readonly string[], sort?: Sort) : Promise<FooEntity[]>;
+        findByFooId (id: string, sort?: Sort): Promise<FooEntity | undefined>;
         deleteAllByFooId (id: string): Promise<void>;
         existsByFooId (id : string): Promise<boolean>;
         countByFooId (id : string) : Promise<number>;
@@ -66,16 +67,16 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
     interface BarRepository extends Repository<BarEntity, string> {
 
-        findAllByBarName(name: string) : Promise<BarEntity[]>;
-        findByBarName (name: string): Promise<BarEntity | undefined>;
+        findAllByBarName(name: string, sort?: Sort) : Promise<BarEntity[]>;
+        findByBarName (name: string, sort?: Sort): Promise<BarEntity | undefined>;
         deleteAllByBarName (name: string): Promise<void>;
         existsByBarName (name : string): Promise<boolean>;
         countByBarName (name : string) : Promise<number>;
 
-        findAllByBarId(id: string) : Promise<BarEntity[]>;
-        findByBarId (id: string): Promise<BarEntity | undefined>;
-        deleteAllByBarId (id: string): Promise<void>;
-        existsByBarId (id : string): Promise<boolean>;
+        findAllByBarId(id: string, sort?: Sort) : Promise<BarEntity[]>;
+        findByBarId (id: string, sort?: Sort) : Promise<BarEntity | undefined>;
+        deleteAllByBarId (id: string) : Promise<void>;
+        existsByBarId (id : string) : Promise<boolean>;
         countByBarId (id : string) : Promise<number>;
 
     }
@@ -86,13 +87,16 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
     let barEntity1 : BarEntity;
     let barEntity2 : BarEntity;
     let barEntity3 : BarEntity;
+    let barEntity4 : BarEntity;
     let barEntityId1 : string;
     let barEntityId2 : string;
     let barEntityId3 : string;
+    let barEntityId4 : string;
 
     let barEntityName1 : string = 'Bar 123';
     let barEntityName2 : string = 'Bar 456';
     let barEntityName3 : string = 'Bar 789';
+    let barEntityName4 : string = 'Bar 123';
 
     beforeEach( async () => {
 
@@ -131,12 +135,19 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
         barEntityId3 = barEntity3?.barId as string;
         if (!barEntityId3) throw new TypeError('barEntity3 failed to initialize');
 
+        barEntity4 = await persister.insert(
+            new BarEntity({barName: barEntityName4}),
+            new BarEntity().getMetadata()
+        );
+        barEntityId4 = barEntity4?.barId as string;
+        if (!barEntityId4) throw new TypeError('barEntity4 failed to initialize');
+
     });
 
     describe('#count', () => {
 
         it('can count entities', async () => {
-            expect( await barRepository.count() ).toBe(3);
+            expect( await barRepository.count() ).toBe(4);
         });
 
     });
@@ -144,9 +155,10 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
     describe('#delete', () => {
 
         it('can delete entity by entity object', async () => {
-            expect( await barRepository.count() ).toBe(3);
+
+            expect( await barRepository.count() ).toBe(4);
             await barRepository.delete(barEntity2);
-            expect( await barRepository.count() ).toBe(2);
+            expect( await barRepository.count() ).toBe(3);
 
             let entity : BarEntity | undefined = await barRepository.findByBarId(barEntityId2);
             expect(entity).not.toBeDefined();
@@ -158,9 +170,10 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
     describe('#deleteById', () => {
 
         it('can delete entity by id', async () => {
-            expect( await barRepository.count() ).toBe(3);
+
+            expect( await barRepository.count() ).toBe(4);
             await barRepository.deleteById(barEntityId2);
-            expect( await barRepository.count() ).toBe(2);
+            expect( await barRepository.count() ).toBe(3);
 
             let entity : BarEntity | undefined = await barRepository.findByBarId(barEntityId2);
             expect(entity).not.toBeDefined();
@@ -172,49 +185,21 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
     describe('#deleteAll', () => {
 
         it('can delete all entities', async () => {
-            expect( await barRepository.count() ).toBe(3);
+            expect( await barRepository.count() ).toBe(4);
             await barRepository.deleteAll();
             expect( await barRepository.count() ).toBe(0);
         });
 
         it('can delete all entities with few ids', async () => {
 
-            expect( await barRepository.count() ).toBe(3);
+            expect( await barRepository.count() ).toBe(4);
             await barRepository.deleteAll(
                 [
                     barEntity2,
                     barEntity3
                 ]
             );
-            expect( await barRepository.count() ).toBe(1);
-
-            let entity : BarEntity | undefined = await barRepository.findByBarId(barEntityId2);
-            expect(entity).not.toBeDefined();
-
-            let entity2 : BarEntity | undefined = await barRepository.findByBarId(barEntityId3);
-            expect(entity2).not.toBeDefined();
-
-        });
-
-    });
-
-    describe('#deleteAllById', () => {
-
-        it('can delete all entities', async () => {
-            expect( await barRepository.count() ).toBe(3);
-            await barRepository.deleteAllById( [barEntityId2] );
             expect( await barRepository.count() ).toBe(2);
-        });
-
-        it('can delete all entities with few ids', async () => {
-            expect( await barRepository.count() ).toBe(3);
-            await barRepository.deleteAllById(
-                [
-                    barEntityId2,
-                    barEntityId3
-                ]
-            );
-            expect( await barRepository.count() ).toBe(1);
 
             let entity1 : BarEntity | undefined = await barRepository.findByBarId(barEntityId1);
             expect(entity1).toBeDefined();
@@ -224,6 +209,43 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
             let entity3 : BarEntity | undefined = await barRepository.findByBarId(barEntityId3);
             expect(entity3).not.toBeDefined();
+
+            let entity4 : BarEntity | undefined = await barRepository.findByBarId(barEntityId4);
+            expect(entity4).toBeDefined();
+
+        });
+
+    });
+
+    describe('#deleteAllById', () => {
+
+        it('can delete all entities by id', async () => {
+            expect( await barRepository.count() ).toBe(4);
+            await barRepository.deleteAllById( [barEntityId2] );
+            expect( await barRepository.count() ).toBe(3);
+        });
+
+        it('can delete all entities by few ids', async () => {
+            expect( await barRepository.count() ).toBe(4);
+            await barRepository.deleteAllById(
+                [
+                    barEntityId2,
+                    barEntityId3
+                ]
+            );
+            expect( await barRepository.count() ).toBe(2);
+
+            let entity1 : BarEntity | undefined = await barRepository.findByBarId(barEntityId1);
+            expect(entity1).toBeDefined();
+
+            let entity2 : BarEntity | undefined = await barRepository.findByBarId(barEntityId2);
+            expect(entity2).not.toBeDefined();
+
+            let entity3 : BarEntity | undefined = await barRepository.findByBarId(barEntityId3);
+            expect(entity3).not.toBeDefined();
+
+            let entity4 : BarEntity | undefined = await barRepository.findByBarId(barEntityId4);
+            expect(entity4).toBeDefined();
 
         });
 
@@ -241,10 +263,10 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
     describe('#findAll', () => {
 
-        it('can find all entities', async () => {
+        it('can find all entities unsorted', async () => {
             const items = await barRepository.findAll();
             expect(items).toBeArray();
-            expect(items?.length).toBe(3);
+            expect(items?.length).toBe(4);
 
             // Order may be different
             const item1 = find(items, (item) => item.barId === barEntityId1);
@@ -265,11 +287,59 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
         });
 
+        it('can find all entities sorted by name and id in ascending order', async () => {
+
+            const items = await barRepository.findAll( Sort.by('barName', 'barId') );
+            expect(items).toBeArray();
+            expect(items?.length).toBe(4);
+
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId1);
+            expect(items[0]?.barName).toBe(barEntityName1);
+
+            expect(items[1]).toBeDefined();
+            expect(items[1]?.barId).toBe(barEntityId4);
+            expect(items[1]?.barName).toBe(barEntityName4);
+
+            expect(items[2]).toBeDefined();
+            expect(items[2]?.barId).toBe(barEntityId2);
+            expect(items[2]?.barName).toBe(barEntityName2);
+
+            expect(items[3]).toBeDefined();
+            expect(items[3]?.barId).toBe(barEntityId3);
+            expect(items[3]?.barName).toBe(barEntityName3);
+
+        });
+
+        it('can find all entities sorted by name and id in desc order', async () => {
+
+            const items = await barRepository.findAll( Sort.by(Sort.Direction.DESC, 'barName', 'barId') );
+            expect(items).toBeArray();
+            expect(items?.length).toBe(4);
+
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId3);
+            expect(items[0]?.barName).toBe(barEntityName3);
+
+            expect(items[1]).toBeDefined();
+            expect(items[1]?.barId).toBe(barEntityId2);
+            expect(items[1]?.barName).toBe(barEntityName2);
+
+            expect(items[2]).toBeDefined();
+            expect(items[2]?.barId).toBe(barEntityId4);
+            expect(items[2]?.barName).toBe(barEntityName4);
+
+            expect(items[3]).toBeDefined();
+            expect(items[3]?.barId).toBe(barEntityId1);
+            expect(items[3]?.barName).toBe(barEntityName1);
+
+        });
+
     });
 
     describe('#findAllById', () => {
 
-        it('can find all entities by id', async () => {
+        it('can find all entities by id unsorted', async () => {
             const items = await barRepository.findAllById([barEntityId2, barEntityId3]);
             expect(items).toBeArray();
             expect(items?.length).toBe(2);
@@ -279,12 +349,50 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
             expect(items[1]?.barName).toBe(barEntityName3);
         });
 
+        it('can find all entities by id in ascending order', async () => {
+            const items = await barRepository.findAllById([barEntityId2, barEntityId3], Sort.by('barName') );
+            expect(items).toBeArray();
+            expect(items?.length).toBe(2);
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId2);
+            expect(items[0]?.barName).toBe(barEntityName2);
+            expect(items[1]).toBeDefined();
+            expect(items[1]?.barId).toBe(barEntityId3);
+            expect(items[1]?.barName).toBe(barEntityName3);
+        });
+
+        it('can find all entities by id in desc order', async () => {
+            const items = await barRepository.findAllById([barEntityId2, barEntityId3], Sort.by(Sort.Direction.DESC,'barName') );
+            expect(items).toBeArray();
+            expect(items?.length).toBe(2);
+            expect(items[1]).toBeDefined();
+            expect(items[1]?.barId).toBe(barEntityId2);
+            expect(items[1]?.barName).toBe(barEntityName2);
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId3);
+            expect(items[0]?.barName).toBe(barEntityName3);
+        });
+
     });
 
     describe('#findById', () => {
 
-        it('can find entity by id', async () => {
+        it('can find entity by id unsorted', async () => {
             const item = await barRepository.findById(barEntityId2);
+            expect(item).toBeDefined();
+            expect(item?.barId).toBe(barEntityId2);
+            expect(item?.barName).toBe(barEntityName2);
+        });
+
+        it('can find entity by id by asc order', async () => {
+            const item = await barRepository.findById(barEntityId2, Sort.by('barName'));
+            expect(item).toBeDefined();
+            expect(item?.barId).toBe(barEntityId2);
+            expect(item?.barName).toBe(barEntityName2);
+        });
+
+        it('can find entity by id by desc order', async () => {
+            const item = await barRepository.findById(barEntityId2, Sort.by(Sort.Direction.DESC,'barName'));
             expect(item).toBeDefined();
             expect(item?.barId).toBe(barEntityId2);
             expect(item?.barName).toBe(barEntityName2);
@@ -294,8 +402,24 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
     describe('#find', () => {
 
-        it('can find entities by property', async () => {
+        it('can find entities by property unsorted', async () => {
             const items = await barRepository.find("barName", barEntityName2);
+            expect(items).toBeArray();
+            expect(items?.length).toBe(1);
+            expect(items[0]?.barId).toBe(barEntityId2);
+            expect(items[0]?.barName).toBe(barEntityName2);
+        });
+
+        it('can find entities by property in asc order', async () => {
+            const items = await barRepository.find("barName", barEntityName2, Sort.by('barName'));
+            expect(items).toBeArray();
+            expect(items?.length).toBe(1);
+            expect(items[0]?.barId).toBe(barEntityId2);
+            expect(items[0]?.barName).toBe(barEntityName2);
+        });
+
+        it('can find entities by property in desc order', async () => {
+            const items = await barRepository.find("barName", barEntityName2, Sort.by(Sort.Direction.DESC,'barName'));
             expect(items).toBeArray();
             expect(items?.length).toBe(1);
             expect(items[0]?.barId).toBe(barEntityId2);
@@ -330,7 +454,7 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
         it('can save older entity', async () => {
 
-            expect( await barRepository.count() ).toBe(3);
+            expect( await barRepository.count() ).toBe(4);
 
             barEntity2.barName = 'Hello world';
 
@@ -339,7 +463,7 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
             expect(savedItem.barId).toBe(barEntityId2);
             expect(savedItem.barName).toBe('Hello world');
 
-            expect( await barRepository.count() ).toBe(3);
+            expect( await barRepository.count() ).toBe(4);
 
             const foundItem = await barRepository.findById(barEntityId2);
             expect(foundItem).toBeDefined();
@@ -388,7 +512,7 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
         it('can save older entities', async () => {
 
-            expect( await barRepository.count() ).toBe(3);
+            expect( await barRepository.count() ).toBe(4);
 
             barEntity2.barName = 'Hello world 1';
             barEntity3.barName = 'Hello world 2';
@@ -403,7 +527,7 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
             expect(savedItems[1].barId).toBe(barEntityId3);
             expect(savedItems[1].barName).toBe('Hello world 2');
 
-            expect( await barRepository.count() ).toBe(3);
+            expect( await barRepository.count() ).toBe(4);
 
             const foundItem2 = await barRepository.findById(barEntityId2);
             expect(foundItem2).toBeDefined();
@@ -422,20 +546,95 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
     describe('#findAllByBarName', () => {
 
-        it('can fetch entities by barName property', async () => {
+        it('can fetch single entity by barName property unsorted', async () => {
             const items = await barRepository.findAllByBarName(barEntityName2);
             expect(items).toBeArray();
             expect(items?.length).toBe(1);
+            expect(items[0]).toBeDefined();
             expect(items[0]?.barId).toBe(barEntityId2);
             expect(items[0]?.barName).toBe(barEntityName2);
+        });
+
+        it('can fetch single entity by barName property in asc order', async () => {
+            const items = await barRepository.findAllByBarName(barEntityName2, Sort.by('barName'));
+            expect(items).toBeArray();
+            expect(items?.length).toBe(1);
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId2);
+            expect(items[0]?.barName).toBe(barEntityName2);
+        });
+
+        it('can fetch single entity by barName property in desc order', async () => {
+            const items = await barRepository.findAllByBarName(barEntityName2, Sort.by(Sort.Direction.DESC,'barName'));
+            expect(items).toBeArray();
+            expect(items?.length).toBe(1);
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId2);
+            expect(items[0]?.barName).toBe(barEntityName2);
+        });
+
+        it('can fetch multiple entities by barName property unsorted', async () => {
+            const items = await barRepository.findAllByBarName(barEntityName1);
+            expect(items).toBeArray();
+            expect(items?.length).toBe(2);
+
+            const item1 = find(items, (item) => item.barId === barEntity1.barId);
+            const item4 = find(items, (item) => item.barId === barEntity4.barId);
+
+            expect(item1).toBeDefined();
+            expect(item4).toBeDefined();
+            expect(item1?.barId).toBe(barEntityId1);
+            expect(item1?.barName).toBe(barEntityName1);
+            expect(item4?.barId).toBe(barEntityId4);
+            expect(item4?.barName).toBe(barEntityName4);
+        });
+
+        it('can fetch multiple entities by barId property in asc order', async () => {
+            const items = await barRepository.findAllByBarName(barEntityName1, Sort.by('barId'));
+            expect(items).toBeArray();
+            expect(items?.length).toBe(2);
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId1);
+            expect(items[0]?.barName).toBe(barEntityName1);
+            expect(items[1]).toBeDefined();
+            expect(items[1]?.barId).toBe(barEntityId4);
+            expect(items[1]?.barName).toBe(barEntityName4);
+        });
+
+        it('can fetch multiple entities by barId property in desc order', async () => {
+            const items = await barRepository.findAllByBarName(barEntityName1, Sort.by(Sort.Direction.DESC,'barId'));
+            expect(items).toBeArray();
+            expect(items?.length).toBe(2);
+
+            expect(items[0]).toBeDefined();
+            expect(items[0]?.barId).toBe(barEntityId4);
+            expect(items[0]?.barName).toBe(barEntityName4);
+
+            expect(items[1]).toBeDefined();
+            expect(items[1]?.barId).toBe(barEntityId1);
+            expect(items[1]?.barName).toBe(barEntityName1);
         });
 
     });
 
     describe('#findByBarName', () => {
 
-        it('can find entity by barName property', async () => {
+        it('can find entity by barName property unsorted', async () => {
             const entity : BarEntity | undefined = await barRepository.findByBarName(barEntityName2);
+            expect(entity).toBeDefined();
+            expect(entity?.barId).toBe(barEntityId2);
+            expect(entity?.barName).toBe(barEntityName2);
+        });
+
+        it('can find entity by barName property in asc order', async () => {
+            const entity : BarEntity | undefined = await barRepository.findByBarName(barEntityName2, Sort.by('barName'));
+            expect(entity).toBeDefined();
+            expect(entity?.barId).toBe(barEntityId2);
+            expect(entity?.barName).toBe(barEntityName2);
+        });
+
+        it('can find entity by barName property in desc order', async () => {
+            const entity : BarEntity | undefined = await barRepository.findByBarName(barEntityName2, Sort.by(Sort.Direction.DESC,'barName'));
             expect(entity).toBeDefined();
             expect(entity?.barId).toBe(barEntityId2);
             expect(entity?.barName).toBe(barEntityName2);
@@ -475,8 +674,24 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
     describe('#findAllByBarId', () => {
 
-        it('can find all entities by barId', async () => {
+        it('can find all entities by barId unsorted', async () => {
             const items = await barRepository.findAllByBarId(barEntityId2);
+            expect(items).toBeArray();
+            expect(items?.length).toBe(1);
+            expect(items[0]?.barId).toBe(barEntityId2);
+            expect(items[0]?.barName).toBe(barEntityName2);
+        });
+
+        it('can find all entities by barId in asc order', async () => {
+            const items = await barRepository.findAllByBarId(barEntityId2, Sort.by('barName'));
+            expect(items).toBeArray();
+            expect(items?.length).toBe(1);
+            expect(items[0]?.barId).toBe(barEntityId2);
+            expect(items[0]?.barName).toBe(barEntityName2);
+        });
+
+        it('can find all entities by barId in desc order', async () => {
+            const items = await barRepository.findAllByBarId(barEntityId2, Sort.by(Sort.Direction.DESC,'barName'));
             expect(items).toBeArray();
             expect(items?.length).toBe(1);
             expect(items[0]?.barId).toBe(barEntityId2);
@@ -487,8 +702,20 @@ export const basicCrudTests = (context : RepositoryTestContext) : void => {
 
     describe('#findByBarId', () => {
 
-        it('can find an entity by barId', async () => {
+        it('can find an entity by barId unsorted', async () => {
             const item = await barRepository.findByBarId(barEntityId2);
+            expect(item?.barId).toBe(barEntityId2);
+            expect(item?.barName).toBe(barEntityName2);
+        });
+
+        it('can find an entity by barId in asc order', async () => {
+            const item = await barRepository.findByBarId(barEntityId2, Sort.by('barName'));
+            expect(item?.barId).toBe(barEntityId2);
+            expect(item?.barName).toBe(barEntityName2);
+        });
+
+        it('can find an entity by barId in desc order', async () => {
+            const item = await barRepository.findByBarId(barEntityId2, Sort.by(Sort.Direction.DESC,'barName'));
             expect(item?.barId).toBe(barEntityId2);
             expect(item?.barName).toBe(barEntityName2);
         });
